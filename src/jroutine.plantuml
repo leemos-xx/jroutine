@@ -1,0 +1,87 @@
+@startuml
+package org.coral.jroutine {
+    
+    package org.coral.jroutine.load {
+        interface Instance
+        interface LoadBalancer<Instance> {
+            +Instance choose()
+        }
+
+        class RoundRobinLoadBalancer implements LoadBalancer
+        class WeightedRoundRobinLoadBalancer implements LoadBalancer
+    }
+    
+    package org.coral.jroutine.lifecycle {
+        interface Lifecycle {
+            +void start()
+            +void suspend()
+            +void resume()
+            +void stop()
+            +void addEventListener()
+            +void removeEventListener()
+        }
+        class LifecycleEvent {
+            +enum Type
+        }
+        interface LifecycleEventListener {
+            +void onEvent(LifecycleEvent event)
+        }
+        class AbstractLifecycle implements Lifecycle
+        Lifecycle -> LifecycleEventListener
+        LifecycleEventListener -> LifecycleEvent
+    }
+    
+    package org.coral.jroutine.weave {
+        class WeaverClassLoader extends java.net.URLClassLoader
+        interface Transformer {
+            +byte[] transform(byte[] original )
+        }
+        
+        package org.coral.jroutine.weave.bytecode {
+            class OperandStack {
+            
+            }
+            class OperandStackRecoder {
+            
+            }
+            
+            package org.coral.jroutine.weave.asm {
+                class AsmTransformer implements Transformer {
+                
+                }
+            }
+            OperandStackRecoder -> OperandStack
+        }
+    }
+    
+    package org.coral.jroutine.message {
+    
+    }
+    
+    class Scheduler {
+        -PriorityExecutor[] executors
+        
+        +void submit(Task task)
+        -int chooseExecutor()
+        +void shutdown()
+        +void shutdownNow()
+    }
+    
+    class PriorityExecutor extends java.util.concurrent.ThreadPoolExecutor implements Instance {
+        -PriorityQueue<Task> tasks
+        -static LoadBalancer DEFAULT
+        
+        +void publish(Task task)
+    }
+    
+    class Task extends AbstractLifecycle implements java.lang.Comparable, java.lang.Runnable {
+        +void sleep()
+        +void join()
+        +void run()
+        -fireEvent(LifecycleEvent event)
+    }
+    
+    Scheduler -> PriorityExecutor
+    PriorityExecutor -> Task
+}
+@enduml
