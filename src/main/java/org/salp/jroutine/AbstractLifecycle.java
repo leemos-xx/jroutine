@@ -3,10 +3,7 @@ package org.salp.jroutine;
 import org.salp.jroutine.exception.LifecycleException;
 
 /**
- * events need to be executed in order.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 生命周期骨干实现
  */
 public abstract class AbstractLifecycle implements Lifecycle {
 
@@ -17,6 +14,7 @@ public abstract class AbstractLifecycle implements Lifecycle {
         if (status != State.NEW) {
             throw new LifecycleException();
         }
+
         try {
             initInternal();
             setStatus(State.INITIALIZED);
@@ -29,6 +27,7 @@ public abstract class AbstractLifecycle implements Lifecycle {
 
     @Override
     public void start() throws LifecycleException {
+        // 若启动时未初始化，则先执行初始化方法
         if (status == State.NEW) {
             init();
         }
@@ -62,7 +61,7 @@ public abstract class AbstractLifecycle implements Lifecycle {
 
     protected abstract void stopInternal() throws LifecycleException;
 
-    public void setStatus(State status) {
+    private void setStatus(State status) {
         this.status = status;
     }
 }
