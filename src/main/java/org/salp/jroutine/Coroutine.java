@@ -2,10 +2,8 @@ package org.salp.jroutine;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.salp.jroutine.exception.IllegalTaskStateException;
+import org.salp.jroutine.exception.IllegalCoroutineStateException;
 import org.salp.jroutine.exception.NonEnhancedClassException;
-import org.salp.jroutine.observer.Observable;
-import org.salp.jroutine.weave.OperandStackRecoder;
 
 /**
  * 协程，可以看做是轻量级的线程，但是它的调度策略是在应用层实现的，其上下文切换的开销会小于系统级线程的上下文切换开销。
@@ -35,94 +33,80 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
     private Runnable target;
 
     // 当前协程运行状态的上下文
-    private OperandStackRecoder recorder;
+    private CoroutineContext context;
 
     public Coroutine(Runnable target) {
-        this(PREFIX_NAME, target, Constants.DEFAULT_PRIORITY);
-    }
-
-    public Coroutine(String name, Runnable target) {
-        this(name, target, Constants.DEFAULT_PRIORITY);
+        this(target, Constants.DEFAULT_PRIORITY);
     }
 
     public Coroutine(Runnable target, int priority) {
-        this(PREFIX_NAME, target, priority);
-    }
-
-    public Coroutine(String name, Runnable target, int priority) {
-        this.target = target;
-        this.recorder = new OperandStackRecoder(target);
         this.id = idSource.getAndIncrement();
+        this.name = PREFIX_NAME + this.id;
+        this.target = target;
+        this.priority = priority;
 
-        this.setName(name);
-        this.setPriority(priority);
+        this.context = new CoroutineContext(target);
     }
 
-    public final void run() {
+    @Override
+    public void run() {
+        // 检查Coroutine的状态，是否可执行
         if (status != CoroutineState.NEW) {
-            throw new IllegalTaskStateException();
+            throw new IllegalCoroutineStateException();
         }
-
+        // target必须先经过字节码增强才能运行
         if (!(target instanceof Enhanced)) {
             throw new NonEnhancedClassException();
         }
 
+        setStatus(CoroutineState.RUNNABLE);
         try {
-            setStatus(CoroutineState.RUNNABLE);
-
-            OperandStackRecoder.set(this.recorder);
-
+            CoroutineContext.set(this.context);
             target.run();
-
-            // TODO how to judge whether the task has been completed
-
         } catch (Exception e) {
             setStatus(CoroutineState.TERMINATED);
             throw e;
         } finally {
-            // OperandStackRecoder.clear();
+            CoroutineContext.clear();
         }
     }
 
+    /**
+     * 挂起协程
+     */
     public synchronized void suspend() {
         if (status != CoroutineState.RUNNABLE) {
-            throw new IllegalTaskStateException();
+            throw new IllegalCoroutineStateException();
         }
         setStatus(CoroutineState.SUSPENDING);
 
-        recorder.suspend();
+        context.suspend();
     }
 
-    public void resume() {
+    /**
+     * 恢复协程
+     */
+    public synchronized void resume() {
         if (status != CoroutineState.SUSPENDING) {
-            throw new IllegalTaskStateException();
+            throw new IllegalCoroutineStateException();
         }
         setStatus(CoroutineState.RUNNABLE);
 
+        // FIXME 此处需要根据上次suspend的上下文继续执行
         target.run();
     }
 
-    public void stop() {
+    /**
+     * 停止协程
+     */
+    public synchronized void stop() {
         if (status == CoroutineState.NEW) {
-            throw new IllegalTaskStateException();
+            throw new IllegalCoroutineStateException();
         }
         setStatus(CoroutineState.TERMINATED);
 
-        recorder.suspend();
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setName(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException();
-        }
-        if (status != CoroutineState.NEW) {
-            throw new IllegalTaskStateException();
-        }
-        this.name = name;
+        // FIXME 此处除挂起协程外，应该保证其不再被调度
+        context.suspend();
     }
 
     public String getName() {
@@ -145,9 +129,13 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
         return this.priority >= t.priority ? 1 : -1;
     }
 
-    protected void setStatus(CoroutineState status) {
+    /**
+     * 修改协程状态，并通知所有观察者
+     * @param status
+     */
+    private void setStatus(CoroutineState status) {
         if (this.status == CoroutineState.TERMINATED) {
-            throw new IllegalTaskStateException();
+            throw new IllegalCoroutineStateException();
         }
         this.status = status;
 

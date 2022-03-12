@@ -11,9 +11,10 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
+import org.salp.jroutine.CoroutineContext;
 
 /**
- * Embedded code, for data exchange between {@link OperandStackRecoder} and
+ * Embedded code, for data exchange between {@link CoroutineContext} and
  * actual thread operand stack.
  * 
  * @author lihao
@@ -21,7 +22,7 @@ import org.objectweb.asm.tree.analysis.Frame;
  */
 public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
 
-    private static final String RECORDER = Type.getInternalName(OperandStackRecoder.class);
+    private static final String RECORDER = Type.getInternalName(CoroutineContext.class);
     private static final String POP_METHOD = "pop";
     private static final String PUSH_METHOD = "push";
 
