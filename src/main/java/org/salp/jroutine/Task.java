@@ -59,7 +59,7 @@ public class Task extends Observable<TaskState> implements Runnable, Comparable<
             throw new IllegalTaskStateException();
         }
 
-        if (!(target instanceof Jroutine)) {
+        if (!(target instanceof Enhanced)) {
             throw new NonEnhancedClassException();
         }
 

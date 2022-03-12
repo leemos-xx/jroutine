@@ -4,10 +4,10 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.salp.jroutine.Jroutine;
+import org.salp.jroutine.Enhanced;
 
 /**
- * Add marker interface{@link Jroutine} and enhance effective methods, skip
+ * Add marker interface{@link Enhanced} and enhance effective methods, skip
  * constructor, native and abstract methods.
  * 
  * @author lihao
@@ -32,14 +32,14 @@ public class JroutineClassAdapter extends ClassVisitor implements Opcodes {
         owner = name;
 
         for (int i = 0; i < interfaces.length; i++) {
-            if (interfaces[i].equals(Type.getInternalName(Jroutine.class))) {
+            if (interfaces[i].equals(Type.getInternalName(Enhanced.class))) {
                 throw new RuntimeException(name + " has already been enhanced");
             }
         }
         String[] newInterfaces = new String[interfaces.length + 1];
         System.arraycopy(interfaces, 0, newInterfaces, 0, interfaces.length);
         // add marker interface
-        newInterfaces[newInterfaces.length - 1] = Type.getInternalName(Jroutine.class);
+        newInterfaces[newInterfaces.length - 1] = Type.getInternalName(Enhanced.class);
 
         cv.visit(version, access, name, signature, superName, newInterfaces);
     }
