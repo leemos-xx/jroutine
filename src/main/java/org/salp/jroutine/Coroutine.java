@@ -8,41 +8,45 @@ import org.salp.jroutine.observer.Observable;
 import org.salp.jroutine.weave.OperandStackRecoder;
 
 /**
- * Coroutine, which can be regarded as a lightweight thread, scheduled in the
- * application layer, supporting suspend, resume and stop.
- * 
- * @author lihao
- * @date 2020-04-29
+ * 协程，可以看做是轻量级的线程，但是它的调度策略是在应用层实现的，其上下文切换的开销会小于系统级线程的上下文切换开销。
+ * 在Jroutine实现的协程调度策略中，支持协程的挂起、恢复和结束。
  */
 public class Coroutine extends Observable<CoroutineState> implements Runnable, Comparable<Coroutine> {
 
+    // 用于生成Coroutine的id，默认单调递增
     private final static AtomicInteger idSource = new AtomicInteger(0);
-    private final static String DEFAULT_TASK_PREFIX_NAME = "DEFAULT-TASK-";
-    private final static int MIN_PRIORITY = 1;
-    private final static int DEFAULT_PRIORITY = 5;
-    private final static int MAX_PRIORITY = 10;
+    private final static String PREFIX_NAME = "COROUTINE-";
 
-    private int id;
-    private String name;
-    private int priority;
-    // enhanced class
-    private Runnable target;
-    // each task needs to hold an operand stack recorder, to record the execution
-    // data of the current task.
-    private OperandStackRecoder recorder;
-
+    // 协程状态
     private volatile CoroutineState status = CoroutineState.NEW;
 
+    // 协程的唯一id
+    private int id;
+
+    // 协程名
+    private String name;
+
+    // 协程的优先级，影响调度策略
+    private int priority;
+
+    // target需要实现Runnable接口，其run方法中为实际的待执行的业务。
+    // 此处的target需要先进行字节码增强，以保证其在运行过程中可以被中断，
+    // 该中断并非系统线程级的时钟中断，而是在应用层面中断协程，以保证应用层能对协程进行主动调度。
+    private Runnable target;
+
+    // 当前协程运行状态的上下文
+    private OperandStackRecoder recorder;
+
     public Coroutine(Runnable target) {
-        this(DEFAULT_TASK_PREFIX_NAME, target, DEFAULT_PRIORITY);
+        this(PREFIX_NAME, target, Constants.DEFAULT_PRIORITY);
     }
 
     public Coroutine(String name, Runnable target) {
-        this(name, target, DEFAULT_PRIORITY);
+        this(name, target, Constants.DEFAULT_PRIORITY);
     }
 
     public Coroutine(Runnable target, int priority) {
-        this(DEFAULT_TASK_PREFIX_NAME, target, priority);
+        this(PREFIX_NAME, target, priority);
     }
 
     public Coroutine(String name, Runnable target, int priority) {
@@ -126,7 +130,7 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
     }
 
     public void setPriority(int priority) {
-        if (priority > MAX_PRIORITY || priority < MIN_PRIORITY) {
+        if (priority > Constants.MAX_PRIORITY || priority < Constants.MIN_PRIORITY) {
             throw new IllegalArgumentException();
         }
         this.priority = priority;
