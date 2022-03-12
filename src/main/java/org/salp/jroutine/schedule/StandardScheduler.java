@@ -3,7 +3,7 @@ package org.salp.jroutine.schedule;
 import java.util.concurrent.TimeUnit;
 
 import org.salp.jroutine.AbstractLifecycle;
-import org.salp.jroutine.Task;
+import org.salp.jroutine.Coroutine;
 import org.salp.jroutine.config.Configs;
 import org.salp.jroutine.config.LoadBalanceType;
 import org.salp.jroutine.exception.LifecycleException;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * @author lihao
  * @date 2020-05-12
  */
-public class StandardScheduler extends AbstractLifecycle implements Scheduler<Task> {
+public class StandardScheduler extends AbstractLifecycle implements Scheduler<Coroutine> {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardScheduler.class);
 
@@ -28,7 +28,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Ta
     private static final int EXECUTOR_QUEUE_SIZE = 1000;
     private static final LoadBalanceType DEFAULT_LOAD_BALANCER = LoadBalanceType.ROUND_ROBIN;
 
-    private Executor<Task>[] executors;
+    private Executor<Coroutine>[] executors;
     private LoadBalancer loadBalancer;
 
     @Override
@@ -39,7 +39,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Ta
 
     @Override
     protected void startInternal() throws LifecycleException {
-        for (Executor<Task> executor : executors) {
+        for (Executor<Coroutine> executor : executors) {
             executor.start();
         }
 
@@ -50,7 +50,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Ta
 
     @Override
     protected void stopInternal() throws LifecycleException {
-        for (Executor<Task> executor : executors) {
+        for (Executor<Coroutine> executor : executors) {
             executor.stop();
         }
 
@@ -58,9 +58,9 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Ta
     }
 
     @Override
-    public void submit(Task task) {
-        Executor<Task> executor = selectExecutor();
-        executor.execute(task);
+    public void submit(Coroutine coroutine) {
+        Executor<Coroutine> executor = selectExecutor();
+        executor.execute(coroutine);
     }
 
     private void initExecutors() {
@@ -100,7 +100,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Ta
         logger.info("load balancer initialized successfully, type={}", type);
     }
 
-    private Executor<Task> selectExecutor() {
+    private Executor<Coroutine> selectExecutor() {
         return loadBalancer.select(executors);
     }
 

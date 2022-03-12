@@ -3,8 +3,7 @@ package org.salp.jroutine.schedule;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.salp.jroutine.Task;
-import org.salp.jroutine.schedule.StandardScheduler;
+import org.salp.jroutine.Coroutine;
 import org.salp.jroutine.weave.AsmClassTransformer;
 import org.salp.jroutine.weave.WeaverClassLoader;
 
@@ -31,15 +30,15 @@ public class StandardSchedulerTest extends TestCase {
         WeaverClassLoader classLoader = new WeaverClassLoader(new URL[] {}, new AsmClassTransformer());
         try {
             Class<?> clazz = classLoader.loadClass("org.coral.jroutine.weave.rewrite.Loop");
-            Task task = new Task((Runnable) clazz.newInstance());
-            scheduler.submit(task);
+            Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
+            scheduler.submit(coroutine);
 
             Thread.sleep(2000);
             System.out.println("suspend");
-            task.suspend();
+            coroutine.suspend();
             Thread.sleep(4000);
             System.out.println("resume");
-            task.resume();
+            coroutine.resume();
 
             Thread.sleep(1000);
         } catch (ClassNotFoundException e) {

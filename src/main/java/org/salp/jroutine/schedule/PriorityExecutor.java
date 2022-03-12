@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.salp.jroutine.AbstractLifecycle;
-import org.salp.jroutine.Task;
+import org.salp.jroutine.Coroutine;
 import org.salp.jroutine.exception.LifecycleException;
 
 /**
@@ -15,7 +15,7 @@ import org.salp.jroutine.exception.LifecycleException;
  * @author lihao
  * @date 2020-05-12
  */
-public class PriorityExecutor extends AbstractLifecycle implements Executor<Task> {
+public class PriorityExecutor extends AbstractLifecycle implements Executor<Coroutine> {
 
     private final static AtomicInteger idSource = new AtomicInteger(0);
 
@@ -56,7 +56,7 @@ public class PriorityExecutor extends AbstractLifecycle implements Executor<Task
     }
 
     @Override
-    public void execute(Task t) {
+    public void execute(Coroutine t) {
         threadPoolExecutor.execute(t);
 
         lastSumittedTime = System.currentTimeMillis();

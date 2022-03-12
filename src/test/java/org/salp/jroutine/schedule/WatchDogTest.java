@@ -2,8 +2,7 @@ package org.salp.jroutine.schedule;
 
 import java.util.Random;
 
-import org.salp.jroutine.Task;
-import org.salp.jroutine.schedule.StandardScheduler;
+import org.salp.jroutine.Coroutine;
 
 import junit.framework.TestCase;
 
@@ -25,7 +24,7 @@ public class WatchDogTest extends TestCase {
 
     public void testSubmit() {
         for (int i = 0; i < 1000; i++) {
-            scheduler.submit(new Task(new Runnable() {
+            scheduler.submit(new Coroutine(new Runnable() {
 
                 @Override
                 public void run() {
