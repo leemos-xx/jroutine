@@ -11,75 +11,87 @@ import leemos.jroutine.exception.LifecycleException;
 import leemos.jroutine.schedule.NamedThreadFactory;
 
 /**
- * implementation of Executor based on priority queue.
- * 
- * @author lihao
- * @date 2020-05-12
+ * Executor的实现类，具备优先级调度功能
  */
 public class PriorityExecutor extends AbstractLifecycle implements Executor<Coroutine> {
 
-    private final static AtomicInteger idSource = new AtomicInteger(0);
+    // 用于生成executor的id，默认单调递增
+    private final static AtomicInteger ID_SOURCE = new AtomicInteger(0);
+    private final static String PREFIX_NAME = "EXECUTOR-";
 
+    // 优先级队列，优先级较高的协程将会优先执行
     private PriorityBlockingQueue<Runnable> queue;
-    private ThreadPoolExecutor threadPoolExecutor;
+
+    // 核心线程池
+    private ThreadPoolExecutor coreThreadPool;
+
+    // executor唯一标识
     private int id;
-    private long lastSumittedTime = System.currentTimeMillis();
+    // executor名称
+    private String name;
+    // 当协程提交到该executor时，更新该时间
+    private long lastSubmittedTime;
 
-    private long keepAliveTime;
-    private TimeUnit timeUnit;
-    private int queueSize;
-
-    private int weight;
+    // 权重
+    private int weight = 5;
     private int currentWeight;
 
     public PriorityExecutor(long keepAliveTime, TimeUnit timeUnit, int queueSize) {
-        this.keepAliveTime = keepAliveTime;
-        this.timeUnit = timeUnit;
-        this.queueSize = queueSize;
+        queue = new PriorityBlockingQueue<Runnable>(queueSize);
+        coreThreadPool = new ThreadPoolExecutor(1, 1, keepAliveTime, timeUnit, queue,
+                new NamedThreadFactory("EXECUTOR", false));
 
-        this.id = idSource.incrementAndGet();
+        id = ID_SOURCE.incrementAndGet();
+        name = PREFIX_NAME + id;
+
+        lastSubmittedTime = System.currentTimeMillis();
     }
 
     @Override
     protected void initInternal() throws LifecycleException {
-        queue = new PriorityBlockingQueue<Runnable>(queueSize);
-        threadPoolExecutor = new ThreadPoolExecutor(1, 1, keepAliveTime, timeUnit, queue,
-                new NamedThreadFactory("EXECUTOR", false));
-
         WatchDog.get().addMonitor(new ExecutorMonitor(this));
     }
 
     @Override
     protected void startInternal() throws LifecycleException {
-
+        // do nothing
     }
 
     @Override
     protected void stopInternal() throws LifecycleException {
-        threadPoolExecutor.shutdown();
+        coreThreadPool.shutdown();
     }
 
     @Override
-    public void execute(Coroutine t) {
-        threadPoolExecutor.execute(t);
-
-        lastSumittedTime = System.currentTimeMillis();
+    public void execute(Coroutine coroutine) {
+        // FIXME 执行协程，缺少中断机制？
+        coreThreadPool.execute(coroutine);
+        // 最近提交协程的时间
+        lastSubmittedTime = System.currentTimeMillis();
     }
 
-    public int getId() {
-        return id;
-    }
-
+    /**
+     * 获取executor名称
+     * @return
+     */
     public String getName() {
-        return "JROUTINE-EXECUTOR-E" + id;
+        return name;
     }
 
+    /**
+     * 获取当前executor中任务队列的大小
+     * @return
+     */
     public int getCoroutineSize() {
         return queue.size();
     }
 
+    /**
+     * 空闲时间
+     * @return
+     */
     public long getIdleTime() {
-        long idleTime = System.currentTimeMillis() - lastSumittedTime;
+        long idleTime = System.currentTimeMillis() - lastSubmittedTime;
         return idleTime;
     }
 
