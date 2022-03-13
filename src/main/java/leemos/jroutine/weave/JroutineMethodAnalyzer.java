@@ -24,7 +24,7 @@ import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.SimpleVerifier;
 import org.objectweb.asm.tree.analysis.SourceInterpreter;
 import org.objectweb.asm.tree.analysis.SourceValue;
-import leemos.jroutine.config.Configs;
+import leemos.jroutine.config.Config;
 import leemos.jroutine.config.ExtensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -283,10 +283,10 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
     }
 
     private boolean isSuspendableInsn(int opcode, String name) {
-        if (Configs.getExtensionType() == ExtensionType.METHOD && isMethodInsn(opcode, name)) {
+        if (Config.getExtensionType() == ExtensionType.METHOD && isMethodInsn(opcode, name)) {
             return true;
         }
-        if (Configs.getExtensionType() == ExtensionType.METHOD_AND_LOOP
+        if (Config.getExtensionType() == ExtensionType.METHOD_AND_LOOP
                 && (isMethodInsn(opcode, name) || isLoopInsn(opcode))) {
             return true;
         }

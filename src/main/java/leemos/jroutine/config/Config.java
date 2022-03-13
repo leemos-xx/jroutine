@@ -3,12 +3,10 @@ package leemos.jroutine.config;
 import java.util.concurrent.TimeUnit;
 
 /**
- * global configs
- * 
- * @author lihao
- * @date 2020-05-06
+ * 配置文件
+ * TODO 该类应该从配置文件中读取生成
  */
-public class Configs {
+public class Config {
 
     private static boolean debug = true;
     private static int executorsCoreSize = -1;

@@ -7,7 +7,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
-import leemos.jroutine.config.Configs;
+import leemos.jroutine.config.Config;
 
 /**
  * Bytecode transformer via asm.
@@ -28,7 +28,7 @@ public class AsmClassTransformer implements ClassTransformer {
         // make sure that the transformed bytecode is sane
         ClassVisitor visitor = new CheckClassAdapter(cw, false);
         // trace the classes
-        if (Configs.isDebugEnabled()) {
+        if (Config.isDebugEnabled()) {
             visitor = new TraceClassVisitor(visitor, new PrintWriter(System.out));
         }
         // enhance bytecode
