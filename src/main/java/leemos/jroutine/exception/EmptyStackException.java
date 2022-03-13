@@ -1,10 +1,7 @@
 package leemos.jroutine.exception;
 
 /**
- * Thrown to indicate that the stack is empty.
- * 
- * @author lihao
- * @date 2020-05-05
+ * 当操作栈为空时抛出此异常
  */
 public class EmptyStackException extends RuntimeException {
 

@@ -1,10 +1,7 @@
 package leemos.jroutine.exception;
 
 /**
- * Thrown when an exception occurs in the lifecycle.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 当生命周期期间出现异常时抛出
  */
 public class LifecycleException extends RuntimeException {
 

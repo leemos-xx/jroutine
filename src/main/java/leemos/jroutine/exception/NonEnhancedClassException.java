@@ -1,10 +1,7 @@
 package leemos.jroutine.exception;
 
 /**
- * Thrown to indicate that a {@link Runnable} is not enhanced.
- * 
- * @author lihao
- * @date 2020-05-11
+ * 当尝试调度一个未经字节码增强的类时抛出此异常
  */
 public class NonEnhancedClassException extends IllegalArgumentException {
 
