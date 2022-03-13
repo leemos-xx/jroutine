@@ -9,7 +9,6 @@ import org.salp.jroutine.AbstractLifecycle;
 import org.salp.jroutine.Coroutine;
 import org.salp.jroutine.exception.LifecycleException;
 import org.salp.jroutine.schedule.NamedThreadFactory;
-import org.salp.jroutine.schedule.WatchDog;
 
 /**
  * implementation of Executor based on priority queue.
@@ -75,7 +74,7 @@ public class PriorityExecutor extends AbstractLifecycle implements Executor<Coro
         return "JROUTINE-EXECUTOR-E" + id;
     }
 
-    public int getTaskSize() {
+    public int getCoroutineSize() {
         return queue.size();
     }
 

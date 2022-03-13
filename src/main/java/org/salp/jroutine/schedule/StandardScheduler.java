@@ -9,6 +9,7 @@ import org.salp.jroutine.config.LoadBalanceType;
 import org.salp.jroutine.exception.LifecycleException;
 import org.salp.jroutine.schedule.executor.Executor;
 import org.salp.jroutine.schedule.executor.PriorityExecutor;
+import org.salp.jroutine.schedule.executor.WatchDog;
 import org.salp.jroutine.schedule.lb.LoadBalancer;
 import org.salp.jroutine.schedule.lb.RoundRobinLoadBalancer;
 import org.salp.jroutine.schedule.lb.WeightRoundRobinLoadBalancer;
