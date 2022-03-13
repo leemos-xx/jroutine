@@ -46,7 +46,7 @@ public class PriorityExecutor extends AbstractLifecycle implements Executor<Coro
         threadPoolExecutor = new ThreadPoolExecutor(1, 1, keepAliveTime, timeUnit, queue,
                 new NamedThreadFactory("EXECUTOR", false));
 
-        WatchDog.me().addMonitor(new ExecutorMonitor(this));
+        WatchDog.get().addMonitor(new ExecutorMonitor(this));
     }
 
     @Override

@@ -47,7 +47,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Co
         }
 
         if (Configs.isDebugEnabled()) {
-            WatchDog.me().start();
+            WatchDog.get().start();
         }
     }
 
@@ -57,7 +57,7 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Co
             executor.stop();
         }
 
-        WatchDog.me().stop();
+        WatchDog.get().stop();
     }
 
     @Override
