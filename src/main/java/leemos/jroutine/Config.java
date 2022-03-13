@@ -1,5 +1,6 @@
-package leemos.jroutine.config;
+package leemos.jroutine;
 
+import leemos.jroutine.config.ExtensionType;
 import leemos.jroutine.schedule.lb.LoadBalanceType;
 
 import java.util.concurrent.TimeUnit;

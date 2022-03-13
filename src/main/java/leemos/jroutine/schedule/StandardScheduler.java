@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import leemos.jroutine.AbstractLifecycle;
 import leemos.jroutine.Coroutine;
-import leemos.jroutine.config.Config;
+import leemos.jroutine.Config;
 import leemos.jroutine.schedule.lb.LoadBalanceType;
 import leemos.jroutine.exception.LifecycleException;
 import leemos.jroutine.schedule.executor.PriorityExecutor;

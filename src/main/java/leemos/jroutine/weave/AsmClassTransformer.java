@@ -7,7 +7,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
-import leemos.jroutine.config.Config;
+import leemos.jroutine.Config;
 
 /**
  * Bytecode transformer via asm.

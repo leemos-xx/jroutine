@@ -24,7 +24,7 @@ import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.SimpleVerifier;
 import org.objectweb.asm.tree.analysis.SourceInterpreter;
 import org.objectweb.asm.tree.analysis.SourceValue;
-import leemos.jroutine.config.Config;
+import leemos.jroutine.Config;
 import leemos.jroutine.config.ExtensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
