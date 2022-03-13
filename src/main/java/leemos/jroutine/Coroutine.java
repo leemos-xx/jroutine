@@ -12,7 +12,7 @@ import leemos.jroutine.exception.NonEnhancedClassException;
 public class Coroutine extends Observable<CoroutineState> implements Runnable, Comparable<Coroutine> {
 
     // 用于生成Coroutine的id，默认单调递增
-    private final static AtomicInteger idSource = new AtomicInteger(0);
+    private final static AtomicInteger ID_SOURCE = new AtomicInteger(0);
     private final static String PREFIX_NAME = "COROUTINE-";
 
     // 协程状态
@@ -40,7 +40,7 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
     }
 
     public Coroutine(Runnable target, int priority) {
-        this.id = idSource.getAndIncrement();
+        this.id = ID_SOURCE.getAndIncrement();
         this.name = PREFIX_NAME + this.id;
         this.target = target;
         this.priority = priority;
