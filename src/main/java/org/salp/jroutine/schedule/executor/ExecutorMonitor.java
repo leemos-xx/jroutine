@@ -1,24 +1,27 @@
 package org.salp.jroutine.schedule.executor;
 
-import org.salp.jroutine.schedule.Monitor;
-
 /**
- * executor monitor
- * 
- * @author lihao
- * @date 2020-05-15
+ * Executor监视器
  */
 public class ExecutorMonitor implements Monitor {
 
-    private PriorityExecutor executor;
+    private Executor executor;
 
     public ExecutorMonitor(PriorityExecutor executor) {
         this.executor = executor;
     }
 
+    /**
+     * 获取
+     * @return
+     */
     @Override
-    public String status() {
-        return executor.getName() + ": " + "size=" + executor.getTaskSize() + ", idleTime=" + executor.getIdleTime();
+    public String collect() {
+        return executor.getName() + ": " +
+                "size=" + executor.getCoroutineSize() + ", " +
+                "idleTime=" + executor.getIdleTime() + ", " +
+                "weight=" + executor.getWeight() + ", " +
+                "currentWeight=" + executor.getCurrentWeight();
     }
 
 }
