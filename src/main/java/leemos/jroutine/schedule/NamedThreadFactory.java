@@ -4,18 +4,14 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * named thread factory.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 可命名的线程工厂类
  */
 public class NamedThreadFactory implements ThreadFactory {
 
-    private static final AtomicInteger POOL_COUNTER = new AtomicInteger();
+    private static final AtomicInteger ID_SOURCE = new AtomicInteger();
+    private static final String FIRST_PREFIX = "JROUTINE-";
 
-    private final AtomicInteger threadCounter = new AtomicInteger(1);
-    private final String JROUTINE_PREFIX = "JROUTINE-";
-
+    private AtomicInteger threadCounter = new AtomicInteger(1);
     private ThreadGroup group;
     private boolean isDaemon;
     private String namePrefix;
@@ -23,7 +19,7 @@ public class NamedThreadFactory implements ThreadFactory {
     public NamedThreadFactory(String secondPrefix, boolean daemon) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-        namePrefix = JROUTINE_PREFIX + secondPrefix + "-" + POOL_COUNTER.getAndIncrement() + "-T";
+        namePrefix = FIRST_PREFIX + secondPrefix + "-" + ID_SOURCE.getAndIncrement() + "-T";
         isDaemon = daemon;
     }
 
