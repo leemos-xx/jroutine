@@ -1,12 +1,14 @@
 package leemos.jroutine.schedule;
 
 /**
- * the interface of scheduler.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 调度器
+ * @param <T>
  */
 public interface Scheduler<T extends Runnable> {
 
-    public void submit(T t);
+    /**
+     * 提交任务
+     * @param t
+     */
+    void submit(T t);
 }
