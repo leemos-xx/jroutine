@@ -3,19 +3,12 @@ package org.salp.jroutine.schedule.lb;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * get a value that must be a positive number.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 始终返回正整数的原子类的包装类
  */
 public final class PositiveAtomicInteger {
 
     private static final int MASK = 0x7FFFFFFF;
-    private AtomicInteger atomicInteger = new AtomicInteger(0);
-
-    public int incrementAndGet() {
-        return atomicInteger.incrementAndGet() & MASK;
-    }
+    private final AtomicInteger atomicInteger = new AtomicInteger(0);
 
     public int getAndIncrement() {
         return atomicInteger.getAndIncrement() & MASK;

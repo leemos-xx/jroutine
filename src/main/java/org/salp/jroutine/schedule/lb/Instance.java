@@ -1,24 +1,26 @@
 package org.salp.jroutine.schedule.lb;
 
-import org.salp.jroutine.exception.NotImplementedException;
 
 /**
- * unit of load balancer.
- * 
- * @author lihao
- * @date 2020-05-12
+ * 待负载均衡处理的逻辑单元
  */
 public interface Instance {
 
-    default int getWeight() {
-        throw new NotImplementedException();
-    }
+    /**
+     * 获取基础权重
+     * @return
+     */
+    int getWeight();
 
-    default int getCurrentWeight() {
-        throw new NotImplementedException();
-    }
+    /**
+     * 获取当前权重
+     * @return
+     */
+    int getCurrentWeight();
 
-    default void setCurrentWeight(int weight) {
-        throw new NotImplementedException();
-    }
+    /**
+     * 设置当前权重
+     * @param weight
+     */
+    void setCurrentWeight(int weight);
 }

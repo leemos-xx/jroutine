@@ -1,10 +1,7 @@
 package org.salp.jroutine.schedule.lb;
 
 /**
- * smooth weighted round robin for load balance.
- * 
- * @author lihao
- * @date 2020-05-15
+ * 基于加权轮询的负载均衡
  */
 public class WeightRoundRobinLoadBalancer implements LoadBalancer {
 
@@ -16,12 +13,17 @@ public class WeightRoundRobinLoadBalancer implements LoadBalancer {
         }
 
         T maxWeightInstance = getMaxWeightInstance(instances);
-
         recountWeight(instances);
 
         return maxWeightInstance;
     }
 
+    /**
+     * 获取权重最高的实例
+     * @param instances
+     * @param <T>
+     * @return
+     */
     private <T extends Instance> T getMaxWeightInstance(T[] instances) {
         T maxWeightInstance = instances[0];
         int weightSum = 0;
@@ -39,6 +41,11 @@ public class WeightRoundRobinLoadBalancer implements LoadBalancer {
         return maxWeightInstance;
     }
 
+    /**
+     * 重新计算各个实例的权重
+     * @param instances
+     * @param <T>
+     */
     private <T extends Instance> void recountWeight(T[] instances) {
         for (T instance : instances) {
             instance.setCurrentWeight(instance.getCurrentWeight() + instance.getWeight());
