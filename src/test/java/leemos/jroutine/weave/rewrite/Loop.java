@@ -14,7 +14,7 @@ public class Loop implements Runnable {
             Thread.sleep(500);
         } catch (InterruptedException e) {
         }
-        System.out.println(i++);
+        System.out.println(Thread.currentThread().getName() + " - " + i++);
         print();
     }
 

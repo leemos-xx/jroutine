@@ -29,7 +29,7 @@ public class StandardSchedulerTest extends TestCase {
         @SuppressWarnings("resource")
         WeaverClassLoader classLoader = new WeaverClassLoader(new URL[] {}, new AsmClassTransformer());
         try {
-            Class<?> clazz = classLoader.loadClass("org.coral.jroutine.weave.rewrite.Loop");
+            Class<?> clazz = classLoader.loadClass("leemos.jroutine.weave.rewrite.Loop");
             Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
             scheduler.submit(coroutine);
 
