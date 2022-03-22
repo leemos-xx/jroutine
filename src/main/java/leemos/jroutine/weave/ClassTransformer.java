@@ -1,10 +1,7 @@
 package leemos.jroutine.weave;
 
 /**
- * Bytecode transformer for enhancing class files.
- * 
- * @author lihao
- * @date 2020-05-05
+ * 类转换器
  */
 public interface ClassTransformer {
 

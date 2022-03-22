@@ -10,10 +10,7 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import leemos.jroutine.Config;
 
 /**
- * Bytecode transformer via asm.
- * 
- * @author lihao
- * @date 2020-05-08
+ * 基于ASM的类转换器的实现
  */
 public class AsmClassTransformer implements ClassTransformer {
 
@@ -23,15 +20,16 @@ public class AsmClassTransformer implements ClassTransformer {
     }
 
     public byte[] transform(ClassReader cr) {
+        // 自动计算栈映射帧和操作数栈大小，会影响性能
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 
-        // make sure that the transformed bytecode is sane
         ClassVisitor visitor = new CheckClassAdapter(cw, false);
-        // trace the classes
+
         if (Config.isDebugEnabled()) {
+            // debug模式下打印一些跟踪信息，便于问题排查
             visitor = new TraceClassVisitor(visitor, new PrintWriter(System.out));
         }
-        // enhance bytecode
+
         visitor = new JroutineClassAdapter(visitor);
 
         cr.accept(visitor, 0);
