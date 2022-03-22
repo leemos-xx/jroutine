@@ -29,28 +29,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Analyze variables and instructions in methods.
- * 
- * @author lihao
- * @date 2020-05-09
+ * 分析方法中的变量和指令
  */
-public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
+public class JroutineMethodAnalyzer extends MethodNode {
 
     private static final Logger logger = LoggerFactory.getLogger(JroutineMethodAnalyzer.class);
 
-    private String className;
-    private List<MethodInsnNode> probablyNewVars = new ArrayList<MethodInsnNode>();
+    private final String className;
+    private final  List<MethodInsnNode> probablyNewVars = new ArrayList<>();
 
     protected MethodVisitor mv;
-    protected List<Label> buryingLabels = new ArrayList<Label>();
-    protected List<MethodInsnNode> buryingNodes = new ArrayList<MethodInsnNode>();
+    protected List<Label> buryingLabels = new ArrayList<>();
+    protected List<MethodInsnNode> buryingNodes = new ArrayList<>();
     protected int operandStackRecorderVar;
     protected Analyzer<BasicValue> basicAnalyzer;
-    protected List<AbstractInsnNode> endNodes = new ArrayList<AbstractInsnNode>();
+    protected List<AbstractInsnNode> endNodes = new ArrayList<>();
 
     public JroutineMethodAnalyzer(String className, MethodVisitor mv, int access, String name, String descriptor,
             String signature, String[] exceptions) {
-        super(ASM8, access, name, descriptor, signature, exceptions);
+        super(Opcodes.ASM8, access, name, descriptor, signature, exceptions);
         this.className = className;
         this.mv = mv;
     }
@@ -58,7 +55,6 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
     @Override
     public void visitMethodInsn(int opcodeAndSource, String owner, String name, String descriptor,
             boolean isInterface) {
-        // maybe it can be ignored, because the api has always been Opcodes.ASM8?
         if (api < Opcodes.ASM5 && (opcodeAndSource & Opcodes.SOURCE_DEPRECATED) == 0) {
             super.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface);
             return;
@@ -67,7 +63,7 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
         int opcode = opcodeAndSource & ~Opcodes.SOURCE_MASK;
         MethodInsnNode mn = new MethodInsnNode(opcode, owner, name, descriptor, isInterface);
         // navigate to the instruction where the object needs to be created
-        if (opcode == INVOKESPECIAL || "<init>".equals(name)) {
+        if (opcode == Opcodes.INVOKESPECIAL || "<init>".equals(name)) {
             probablyNewVars.add(mn);
         }
 
@@ -102,7 +98,7 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
         operandStackRecorderVar = maxLocals;
 
         try {
-            HashMap<AbstractInsnNode, MethodInsnNode> promotableVars = null;
+            HashMap<AbstractInsnNode, MethodInsnNode> promotableVars;
             if ((promotableVars = findPromotableVars()).size() > 0) {
                 promoteVars(promotableVars);
             }
@@ -114,7 +110,6 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
                     return new MonitoringFrame(nLocals, nStack);
                 }
 
-                @SuppressWarnings({ "rawtypes", "unchecked" })
                 protected Frame<BasicValue> newFrame(final Frame src) {
                     return new MonitoringFrame(src);
                 }
@@ -139,9 +134,9 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
     }
 
     private HashMap<AbstractInsnNode, MethodInsnNode> findPromotableVars() throws AnalyzerException {
-        HashMap<AbstractInsnNode, MethodInsnNode> promotableVars = new HashMap<AbstractInsnNode, MethodInsnNode>();
+        HashMap<AbstractInsnNode, MethodInsnNode> promotableVars = new HashMap<>();
 
-        Analyzer<SourceValue> sourceAnalyzer = new Analyzer<SourceValue>(new SourceInterpreter());
+        Analyzer<SourceValue> sourceAnalyzer = new Analyzer<>(new SourceInterpreter());
         sourceAnalyzer.analyze(className, this);
 
         Frame<SourceValue>[] frames = sourceAnalyzer.getFrames();
@@ -153,18 +148,18 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
             SourceValue sourceValue = frame.getStack(frame.getStackSize() - args.length - 1);
             Set<AbstractInsnNode> insns = sourceValue.insns;
             for (AbstractInsnNode insn : insns) {
-                if (insn.getOpcode() == NEW) {
+                if (insn.getOpcode() == Opcodes.NEW) {
                     promotableVars.put(insn, methodInsn);
                 } else {
-                    if (insn.getOpcode() == DUP) {
+                    if (insn.getOpcode() == Opcodes.DUP) {
                         AbstractInsnNode prevInsn = insn.getPrevious();
-                        if (prevInsn.getOpcode() == NEW) {
+                        if (prevInsn.getOpcode() == Opcodes.NEW) {
                             promotableVars.put(prevInsn, methodInsn);
                         }
-                    } else if (insn.getOpcode() == SWAP) {
+                    } else if (insn.getOpcode() == Opcodes.SWAP) {
                         AbstractInsnNode insn1 = insn.getPrevious();
                         AbstractInsnNode insn2 = insn1.getPrevious();
-                        if (insn2.getOpcode() == NEW && insn1.getOpcode() == DUP_X1) {
+                        if (insn2.getOpcode() == Opcodes.NEW && insn1.getOpcode() == Opcodes.DUP_X1) {
                             promotableVars.put(insn2, methodInsn);
                         }
                     }
@@ -183,10 +178,10 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
 
             boolean requireDup = false;
             instructions.remove(node1); // NEW
-            if (node2.getOpcode() == DUP) {
+            if (node2.getOpcode() == Opcodes.DUP) {
                 instructions.remove(node2); // DUP
                 requireDup = true;
-            } else if (node2.getOpcode() == DUP_X1) {
+            } else if (node2.getOpcode() == Opcodes.DUP_X1) {
                 instructions.remove(node2); // DUP_X1
                 instructions.remove(node3); // SWAP
                 requireDup = true;
@@ -203,7 +198,7 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
                 InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(DUP));
+                    doNew.add(new InsnNode(Opcodes.DUP));
                 }
                 instructions.insertBefore(mn, doNew);
                 mn = doNew.getLast();
@@ -214,12 +209,12 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
                 InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(DUP));
-                    doNew.add(new InsnNode(DUP2_X1));
-                    doNew.add(new InsnNode(POP2));
+                    doNew.add(new InsnNode(Opcodes.DUP));
+                    doNew.add(new InsnNode(Opcodes.DUP2_X1));
+                    doNew.add(new InsnNode(Opcodes.POP2));
                     updateMaxStack = updateMaxStack < 2 ? 2 : updateMaxStack;
                 } else {
-                    doNew.add(new InsnNode(SWAP));
+                    doNew.add(new InsnNode(Opcodes.SWAP));
                 }
                 instructions.insertBefore(mn, doNew);
                 mn = doNew.getLast();
@@ -231,13 +226,13 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
                 final InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(DUP));
-                    doNew.add(new InsnNode(DUP2_X2));
-                    doNew.add(new InsnNode(POP2));
+                    doNew.add(new InsnNode(Opcodes.DUP));
+                    doNew.add(new InsnNode(Opcodes.DUP2_X2));
+                    doNew.add(new InsnNode(Opcodes.POP2));
                     updateMaxStack = updateMaxStack < 2 ? 2 : updateMaxStack;
                 } else {
-                    doNew.add(new InsnNode(DUP_X2));
-                    doNew.add(new InsnNode(POP));
+                    doNew.add(new InsnNode(Opcodes.DUP_X2));
+                    doNew.add(new InsnNode(Opcodes.POP));
                     updateMaxStack = updateMaxStack < 1 ? 1 : updateMaxStack;
                 }
                 instructions.insertBefore(mn, doNew);
@@ -249,28 +244,28 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
             for (int j = args.length - 1; j >= 0; j--) {
                 Type type = args[j];
 
-                doNew.add(new VarInsnNode(type.getOpcode(ISTORE), varOffset));
+                doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ISTORE), varOffset));
                 varOffset += type.getSize();
             }
             maxLocals = varOffset > maxLocals ? varOffset : maxLocals;
 
             doNew.add(node1);
             if (requireDup) {
-                doNew.add(new InsnNode(DUP));
+                doNew.add(new InsnNode(Opcodes.DUP));
             }
 
             for (int j = 0; j < args.length; j++) {
                 Type type = args[j];
                 varOffset -= type.getSize();
 
-                doNew.add(new VarInsnNode(type.getOpcode(ILOAD), varOffset));
+                doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ILOAD), varOffset));
 
                 if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
                     updateMaxStack = updateMaxStack < 1 ? 1 : updateMaxStack;
 
-                    doNew.add(new InsnNode(ACONST_NULL));
+                    doNew.add(new InsnNode(Opcodes.ACONST_NULL));
 
-                    doNew.add(new VarInsnNode(type.getOpcode(ISTORE), varOffset));
+                    doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ISTORE), varOffset));
                 }
             }
 
@@ -293,12 +288,12 @@ public class JroutineMethodAnalyzer extends MethodNode implements Opcodes {
     }
 
     private boolean isEndInsn(int opcode) {
-        return opcode >= IRETURN && opcode <= RETURN;
+        return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN;
     }
 
     private boolean isMethodInsn(int opcode, String name) {
-        return opcode == INVOKEINTERFACE || opcode == INVOKEVIRTUAL || opcode == INVOKESTATIC
-                || (opcode == INVOKESPECIAL && !"<init>".equals(name));
+        return opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC
+                || (opcode == Opcodes.INVOKESPECIAL && !"<init>".equals(name));
     }
 
     // FIXME
