@@ -14,11 +14,7 @@ import org.objectweb.asm.tree.analysis.Frame;
 import leemos.jroutine.CoroutineContext;
 
 /**
- * Embedded code, for data exchange between {@link CoroutineContext} and
- * actual thread operand stack.
- * 
- * @author lihao
- * @date 2020-05-10
+ * JroutineMethodAdapter
  */
 public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
 
@@ -120,7 +116,6 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
                 }
             }
 
-            // stack
             int argSize = Type.getArgumentTypes(mn.desc).length;
             int ownerSize = mn.getOpcode() == INVOKESTATIC ? 0 : 1;
             int initSize = mn.name.equals("<init>") ? 2 : 0;
@@ -163,7 +158,6 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
             mv.visitJumpInsn(GOTO, frameLabel);
         }
 
-        // it can be used to identify whether the method normally end
         for (int i = 0; i < endNodes.size(); i++) {
             InsnList insns = new InsnList();
             insns.add(new MethodInsnNode(INVOKESTATIC, RECORDER, "get", "()L" + RECORDER + ";", false));
@@ -212,7 +206,7 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
                 if (isNull(value)) {
                     mv.visitInsn(POP);
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
-                    // TODO ??
+
                 } else if (value.isReference()) {
                     mv.visitVarInsn(ALOAD, operandStackRecorderVar);
                     mv.visitInsn(SWAP);
@@ -242,14 +236,13 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
                 mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, PUSH_METHOD + "Reference", "(Ljava/lang/Object;)V", false);
             }
 
-            // save locals
             int fsize = currentFrame.getLocals();
             for (int j = 0; j < fsize; j++) {
                 BasicValue value = (BasicValue) currentFrame.getLocal(j);
                 if (isNull(value)) {
-                    // no need to save null
+
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
-                    // no need to save uninitialized objects
+
                 } else if (value.isReference()) {
                     mv.visitVarInsn(ALOAD, operandStackRecorderVar);
                     mv.visitVarInsn(ALOAD, j);
@@ -265,10 +258,8 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
 
             mv.visitVarInsn(ALOAD, operandStackRecorderVar);
             if (currentIndex >= 128) {
-                // if > 127 then it's a SIPUSH, not a BIPUSH...
                 mv.visitIntInsn(SIPUSH, currentIndex);
             } else {
-                // TODO optimize to iconst_0...
                 mv.visitIntInsn(BIPUSH, currentIndex);
             }
             mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "pushInt", "(I)V", false);
@@ -345,7 +336,7 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
     }
 
     private static String suffix(Type type) {
-        String[] suffixs = { "Object", // 0 void
+        String[] suffixes = { "Object", // 0 void
                 "Int", // 1 boolean
                 "Int", // 2 char
                 "Int", // 3 byte
@@ -358,6 +349,6 @@ public class JroutineMethodAdapter extends MethodVisitor implements Opcodes {
                 "Object", // 10 object
         };
 
-        return suffixs[type.getSort()];
+        return suffixes[type.getSort()];
     }
 }

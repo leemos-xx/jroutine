@@ -102,7 +102,6 @@ public class JroutineMethodAnalyzer extends MethodNode {
                 promoteVars(promotableVars);
             }
 
-            //
             basicAnalyzer = new Analyzer<BasicValue>(new SimpleVerifier()) {
 
                 protected Frame<BasicValue> newFrame(final int nLocals, final int nStack) {
@@ -123,7 +122,6 @@ public class JroutineMethodAnalyzer extends MethodNode {
         }
     }
 
-    // roll back the diffs between asm4 and asm8
     @Override
     protected LabelNode getLabelNode(Label label) {
         if (!(label.info instanceof LabelNode)) {
@@ -186,7 +184,6 @@ public class JroutineMethodAnalyzer extends MethodNode {
             }
 
             MethodInsnNode mnode = entry.getValue();
-            // FIXME ???
             AbstractInsnNode mn = mnode;
 
             int varOffset = operandStackRecorderVar + 1;
