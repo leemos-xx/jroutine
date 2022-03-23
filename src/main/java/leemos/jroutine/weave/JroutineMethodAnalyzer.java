@@ -36,7 +36,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
     private static final Logger logger = LoggerFactory.getLogger(JroutineMethodAnalyzer.class);
 
     private final String className;
-    private final  List<MethodInsnNode> probablyNewVars = new ArrayList<>();
+    private final List<MethodInsnNode> probablyNewVars = new ArrayList<>();
 
     protected MethodVisitor mv;
     protected List<Label> buryingLabels = new ArrayList<>();
@@ -62,13 +62,12 @@ public class JroutineMethodAnalyzer extends MethodNode {
 
         int opcode = opcodeAndSource & ~Opcodes.SOURCE_MASK;
         MethodInsnNode mn = new MethodInsnNode(opcode, owner, name, descriptor, isInterface);
-        // navigate to the instruction where the object needs to be created
+        // INVOKESPECIAL指令 或 方法名为<init> 时，都可能涉及到创建对象，将这些指令记录下来，后续进行变量提升
         if (opcode == Opcodes.INVOKESPECIAL || "<init>".equals(name)) {
             probablyNewVars.add(mn);
         }
 
-        // support multiple extension types, which have different degrees of impact on
-        // execution efficiency
+        // 是否为可挂起的指令
         if (isSuspendableInsn(opcode, name)) {
             Label label = new Label();
             super.visitLabel(label);
@@ -82,7 +81,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
     @Override
     public void visitInsn(int opcode) {
         super.visitInsn(opcode);
-        // ends of the method
+
         if (isEndInsn(opcode)) {
             endNodes.add(instructions.getLast());
         }
@@ -140,8 +139,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
         sourceAnalyzer.analyze(className, this);
 
         Frame<SourceValue>[] frames = sourceAnalyzer.getFrames();
-        for (int i = 0; i < probablyNewVars.size(); i++) {
-            MethodInsnNode methodInsn = probablyNewVars.get(i);
+        for (MethodInsnNode methodInsn: probablyNewVars) {
             Frame<SourceValue> frame = frames[instructions.indexOf(methodInsn)];
             Type[] args = Type.getArgumentTypes(methodInsn.desc);
 
@@ -201,7 +199,6 @@ public class JroutineMethodAnalyzer extends MethodNode {
                     doNew.add(new InsnNode(Opcodes.DUP));
                 }
                 instructions.insertBefore(mn, doNew);
-                mn = doNew.getLast();
                 continue;
             }
 
@@ -212,12 +209,11 @@ public class JroutineMethodAnalyzer extends MethodNode {
                     doNew.add(new InsnNode(Opcodes.DUP));
                     doNew.add(new InsnNode(Opcodes.DUP2_X1));
                     doNew.add(new InsnNode(Opcodes.POP2));
-                    updateMaxStack = updateMaxStack < 2 ? 2 : updateMaxStack;
+                    updateMaxStack = Math.max(updateMaxStack, 2);
                 } else {
                     doNew.add(new InsnNode(Opcodes.SWAP));
                 }
                 instructions.insertBefore(mn, doNew);
-                mn = doNew.getLast();
                 continue;
             }
 
@@ -229,14 +225,13 @@ public class JroutineMethodAnalyzer extends MethodNode {
                     doNew.add(new InsnNode(Opcodes.DUP));
                     doNew.add(new InsnNode(Opcodes.DUP2_X2));
                     doNew.add(new InsnNode(Opcodes.POP2));
-                    updateMaxStack = updateMaxStack < 2 ? 2 : updateMaxStack;
+                    updateMaxStack = Math.max(updateMaxStack, 2);
                 } else {
                     doNew.add(new InsnNode(Opcodes.DUP_X2));
                     doNew.add(new InsnNode(Opcodes.POP));
-                    updateMaxStack = updateMaxStack < 1 ? 1 : updateMaxStack;
+                    updateMaxStack = Math.max(updateMaxStack, 1);
                 }
                 instructions.insertBefore(mn, doNew);
-                mn = doNew.getLast();
                 continue;
             }
 
@@ -247,21 +242,20 @@ public class JroutineMethodAnalyzer extends MethodNode {
                 doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ISTORE), varOffset));
                 varOffset += type.getSize();
             }
-            maxLocals = varOffset > maxLocals ? varOffset : maxLocals;
+            maxLocals = Math.max(varOffset, maxLocals);
 
             doNew.add(node1);
             if (requireDup) {
                 doNew.add(new InsnNode(Opcodes.DUP));
             }
 
-            for (int j = 0; j < args.length; j++) {
-                Type type = args[j];
+            for (Type type: args) {
                 varOffset -= type.getSize();
 
                 doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ILOAD), varOffset));
 
                 if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
-                    updateMaxStack = updateMaxStack < 1 ? 1 : updateMaxStack;
+                    updateMaxStack = Math.max(updateMaxStack, 1);
 
                     doNew.add(new InsnNode(Opcodes.ACONST_NULL));
 
@@ -270,35 +264,42 @@ public class JroutineMethodAnalyzer extends MethodNode {
             }
 
             instructions.insertBefore(mn, doNew);
-            mn = doNew.getLast();
         }
 
         maxStack += updateMaxStack;
     }
 
+    /**
+     * 判断是否为可挂起的指令
+     */
     private boolean isSuspendableInsn(int opcode, String name) {
         if (Config.getExtensionType() == ExtensionType.METHOD && isMethodInsn(opcode, name)) {
             return true;
         }
-        if (Config.getExtensionType() == ExtensionType.METHOD_AND_LOOP
-                && (isMethodInsn(opcode, name) || isLoopInsn(opcode))) {
-            return true;
-        }
-        return false;
+        return Config.getExtensionType() == ExtensionType.METHOD_AND_LOOP
+                && (isMethodInsn(opcode, name) || isLoopInsn(opcode));
     }
 
+    /**
+     * 是否为RETURN相关指令
+     */
     private boolean isEndInsn(int opcode) {
         return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN;
     }
 
+    /**
+     * 是否为方法执行相关指令
+     */
     private boolean isMethodInsn(int opcode, String name) {
         return opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC
                 || (opcode == Opcodes.INVOKESPECIAL && !"<init>".equals(name));
     }
 
-    // FIXME
+    /**
+     * TODO 是否涉及循环
+     */
     private boolean isLoopInsn(int opcode) {
-        return true;
+        return opcode == -1;
     }
 
 }
