@@ -2,9 +2,10 @@ package leemos.jroutine.weave;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import leemos.jroutine.Enhanced;
+
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * Class adapter，用于增强被{@link Enhanced}标识后的类。
@@ -15,14 +16,14 @@ public class JroutineClassAdapter extends ClassVisitor {
     private String className;
 
     public JroutineClassAdapter(ClassVisitor cv) {
-        super(Opcodes.ASM8, cv);
+        super(ASM8, cv);
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 
         // 如果为抽象类或接口，则不作处理
-        if ((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE)) != 0) {
+        if ((access & (ACC_ABSTRACT | ACC_INTERFACE)) != 0) {
             cv.visit(version, access, name, signature, superName, interfaces);
             return;
         }
@@ -50,7 +51,7 @@ public class JroutineClassAdapter extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
 
         // 跳过构造函数、抽象方法和本地方法
-        if (mv != null && !"<init>".equals(name) && ((access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0)) {
+        if (mv != null && !"<init>".equals(name) && ((access & (ACC_ABSTRACT | ACC_NATIVE)) == 0)) {
             mv = new JroutineMethodAnalyzer(className, mv, access, name, descriptor, signature, exceptions);
         }
         return mv;

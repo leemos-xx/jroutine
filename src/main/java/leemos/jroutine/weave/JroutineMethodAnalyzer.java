@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -27,6 +26,9 @@ import org.objectweb.asm.tree.analysis.SourceValue;
 import leemos.jroutine.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.objectweb.asm.Opcodes.*;
+
 
 /**
  * 分析方法中的变量和指令
@@ -47,7 +49,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
 
     public JroutineMethodAnalyzer(String className, MethodVisitor mv, int access, String name, String descriptor,
             String signature, String[] exceptions) {
-        super(Opcodes.ASM8, access, name, descriptor, signature, exceptions);
+        super(ASM8, access, name, descriptor, signature, exceptions);
         this.className = className;
         this.mv = mv;
     }
@@ -55,15 +57,15 @@ public class JroutineMethodAnalyzer extends MethodNode {
     @Override
     public void visitMethodInsn(int opcodeAndSource, String owner, String name, String descriptor,
             boolean isInterface) {
-        if (api < Opcodes.ASM5 && (opcodeAndSource & Opcodes.SOURCE_DEPRECATED) == 0) {
+        if (api < ASM5 && (opcodeAndSource & SOURCE_DEPRECATED) == 0) {
             super.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface);
             return;
         }
 
-        int opcode = opcodeAndSource & ~Opcodes.SOURCE_MASK;
+        int opcode = opcodeAndSource & ~SOURCE_MASK;
         MethodInsnNode mn = new MethodInsnNode(opcode, owner, name, descriptor, isInterface);
         // INVOKESPECIAL指令 或 方法名为<init> 时，都可能涉及到创建对象，将这些指令记录下来，后续进行变量提升
-        if (opcode == Opcodes.INVOKESPECIAL || "<init>".equals(name)) {
+        if (opcode == INVOKESPECIAL || "<init>".equals(name)) {
             probablyNewVars.add(mn);
         }
 
@@ -144,18 +146,18 @@ public class JroutineMethodAnalyzer extends MethodNode {
             SourceValue sourceValue = frame.getStack(frame.getStackSize() - args.length - 1);
             Set<AbstractInsnNode> insns = sourceValue.insns;
             for (AbstractInsnNode insn : insns) {
-                if (insn.getOpcode() == Opcodes.NEW) {
+                if (insn.getOpcode() == NEW) {
                     promotableVars.put(insn, methodInsn);
                 } else {
-                    if (insn.getOpcode() == Opcodes.DUP) {
+                    if (insn.getOpcode() == DUP) {
                         AbstractInsnNode prevInsn = insn.getPrevious();
-                        if (prevInsn.getOpcode() == Opcodes.NEW) {
+                        if (prevInsn.getOpcode() == NEW) {
                             promotableVars.put(prevInsn, methodInsn);
                         }
-                    } else if (insn.getOpcode() == Opcodes.SWAP) {
+                    } else if (insn.getOpcode() == SWAP) {
                         AbstractInsnNode insn1 = insn.getPrevious();
                         AbstractInsnNode insn2 = insn1.getPrevious();
-                        if (insn2.getOpcode() == Opcodes.NEW && insn1.getOpcode() == Opcodes.DUP_X1) {
+                        if (insn2.getOpcode() == NEW && insn1.getOpcode() == DUP_X1) {
                             promotableVars.put(insn2, methodInsn);
                         }
                     }
@@ -174,10 +176,10 @@ public class JroutineMethodAnalyzer extends MethodNode {
 
             boolean requireDup = false;
             instructions.remove(node1); // NEW
-            if (node2.getOpcode() == Opcodes.DUP) {
+            if (node2.getOpcode() == DUP) {
                 instructions.remove(node2); // DUP
                 requireDup = true;
-            } else if (node2.getOpcode() == Opcodes.DUP_X1) {
+            } else if (node2.getOpcode() == DUP_X1) {
                 instructions.remove(node2); // DUP_X1
                 instructions.remove(node3); // SWAP
                 requireDup = true;
@@ -193,7 +195,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
                 InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(Opcodes.DUP));
+                    doNew.add(new InsnNode(DUP));
                 }
                 instructions.insertBefore(mn, doNew);
                 continue;
@@ -203,12 +205,12 @@ public class JroutineMethodAnalyzer extends MethodNode {
                 InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(Opcodes.DUP));
-                    doNew.add(new InsnNode(Opcodes.DUP2_X1));
-                    doNew.add(new InsnNode(Opcodes.POP2));
+                    doNew.add(new InsnNode(DUP));
+                    doNew.add(new InsnNode(DUP2_X1));
+                    doNew.add(new InsnNode(POP2));
                     updateMaxStack = Math.max(updateMaxStack, 2);
                 } else {
-                    doNew.add(new InsnNode(Opcodes.SWAP));
+                    doNew.add(new InsnNode(SWAP));
                 }
                 instructions.insertBefore(mn, doNew);
                 continue;
@@ -219,13 +221,13 @@ public class JroutineMethodAnalyzer extends MethodNode {
                 final InsnList doNew = new InsnList();
                 doNew.add(node1);
                 if (requireDup) {
-                    doNew.add(new InsnNode(Opcodes.DUP));
-                    doNew.add(new InsnNode(Opcodes.DUP2_X2));
-                    doNew.add(new InsnNode(Opcodes.POP2));
+                    doNew.add(new InsnNode(DUP));
+                    doNew.add(new InsnNode(DUP2_X2));
+                    doNew.add(new InsnNode(POP2));
                     updateMaxStack = Math.max(updateMaxStack, 2);
                 } else {
-                    doNew.add(new InsnNode(Opcodes.DUP_X2));
-                    doNew.add(new InsnNode(Opcodes.POP));
+                    doNew.add(new InsnNode(DUP_X2));
+                    doNew.add(new InsnNode(POP));
                     updateMaxStack = Math.max(updateMaxStack, 1);
                 }
                 instructions.insertBefore(mn, doNew);
@@ -236,27 +238,27 @@ public class JroutineMethodAnalyzer extends MethodNode {
             for (int j = args.length - 1; j >= 0; j--) {
                 Type type = args[j];
 
-                doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ISTORE), varOffset));
+                doNew.add(new VarInsnNode(type.getOpcode(ISTORE), varOffset));
                 varOffset += type.getSize();
             }
             maxLocals = Math.max(varOffset, maxLocals);
 
             doNew.add(node1);
             if (requireDup) {
-                doNew.add(new InsnNode(Opcodes.DUP));
+                doNew.add(new InsnNode(DUP));
             }
 
             for (Type type: args) {
                 varOffset -= type.getSize();
 
-                doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ILOAD), varOffset));
+                doNew.add(new VarInsnNode(type.getOpcode(ILOAD), varOffset));
 
                 if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
                     updateMaxStack = Math.max(updateMaxStack, 1);
 
-                    doNew.add(new InsnNode(Opcodes.ACONST_NULL));
+                    doNew.add(new InsnNode(ACONST_NULL));
 
-                    doNew.add(new VarInsnNode(type.getOpcode(Opcodes.ISTORE), varOffset));
+                    doNew.add(new VarInsnNode(type.getOpcode(ISTORE), varOffset));
                 }
             }
 
@@ -281,15 +283,15 @@ public class JroutineMethodAnalyzer extends MethodNode {
      * 是否为RETURN相关指令
      */
     private boolean isEndInsn(int opcode) {
-        return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN;
+        return opcode >= IRETURN && opcode <= RETURN;
     }
 
     /**
      * 是否为方法执行相关指令
      */
     private boolean isMethodInsn(int opcode, String name) {
-        return opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESTATIC
-                || (opcode == Opcodes.INVOKESPECIAL && !"<init>".equals(name));
+        return opcode == INVOKEINTERFACE || opcode == INVOKEVIRTUAL || opcode == INVOKESTATIC
+                || (opcode == INVOKESPECIAL && !"<init>".equals(name));
     }
 
     /**
