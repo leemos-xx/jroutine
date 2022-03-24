@@ -49,7 +49,7 @@ public class WatchDog extends AbstractLifecycle {
     @Override
     protected void startInternal() throws LifecycleException {
         // 每10s执行一次监视动作
-        timer.schedule(timerTask, 1000, 1000 * 10);
+        timer.schedule(timerTask, 600000, 600000);
     }
 
     @Override

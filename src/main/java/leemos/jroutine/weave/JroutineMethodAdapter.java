@@ -54,19 +54,19 @@ public class JroutineMethodAdapter extends MethodVisitor {
 
         Label l0 = new Label();
 
-        // OperandStackRecoder operandStackRecoder = OperandStackRecoder.get();
+        // CoroutineContext context = CoroutineContext.get();
         mv.visitMethodInsn(INVOKESTATIC, RECORDER, "get", "()L" + RECORDER + ";", false);
         mv.visitInsn(DUP);
         mv.visitVarInsn(ASTORE, operandStackRecorderVar);
         mv.visitLabel(startLabel);
 
-        // if (operandStackRecorder != null && !operandStackRecorder.isRestoring)
+        // if (context != null && !context.isRestoring)
         mv.visitJumpInsn(IFNULL, l0);
         mv.visitVarInsn(ALOAD, operandStackRecorderVar);
         mv.visitFieldInsn(GETFIELD, RECORDER, "isRestoring", "Z");
         mv.visitJumpInsn(IFEQ, l0);
 
-        // operandStackRecorder.popInt()
+        // context.popInt()
         mv.visitVarInsn(ALOAD, operandStackRecorderVar);
         mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Int", "()I", false);
         mv.visitTableSwitchInsn(0, fsize - 1, l0, restoreLabels);
@@ -289,7 +289,7 @@ public class JroutineMethodAdapter extends MethodVisitor {
         Label endLabel = new Label();
         mv.visitLabel(endLabel);
 
-        mv.visitLocalVariable("recorder", "L" + RECORDER + ";", null, startLabel, endLabel, operandStackRecorderVar);
+        mv.visitLocalVariable("context", "L" + RECORDER + ";", null, startLabel, endLabel, operandStackRecorderVar);
 
         mv.visitMaxs(0, 0);
     }

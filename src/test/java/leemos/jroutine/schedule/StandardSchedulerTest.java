@@ -5,6 +5,7 @@ import java.net.URL;
 
 import leemos.jroutine.Coroutine;
 import leemos.jroutine.weave.AsmClassTransformer;
+import leemos.jroutine.weave.ClassTransformer;
 import leemos.jroutine.weave.WeaverClassLoader;
 
 import junit.framework.TestCase;
@@ -27,18 +28,19 @@ public class StandardSchedulerTest extends TestCase {
 
     public void testSubmit() throws MalformedURLException, InterruptedException {
         @SuppressWarnings("resource")
-        WeaverClassLoader classLoader = new WeaverClassLoader(new URL[] {}, new AsmClassTransformer());
+        WeaverClassLoader classLoader = new WeaverClassLoader(new URL[]{}, new AsmClassTransformer());
         try {
             Class<?> clazz = classLoader.loadClass("leemos.jroutine.weave.rewrite.Loop");
             Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
             scheduler.submit(coroutine);
 
-            Thread.sleep(2000);
+            Thread.sleep(10000);
             System.out.println("suspend");
             coroutine.suspend();
             Thread.sleep(4000);
             System.out.println("resume");
-            coroutine.resume();
+            scheduler.submit(coroutine);
+            // coroutine.resume();
 
             Thread.sleep(1000);
         } catch (ClassNotFoundException e) {

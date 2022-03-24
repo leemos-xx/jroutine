@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class Config {
 
     private static boolean debug = true;
+    private static String output = "/Users/lihao/Downloads/jroutine";
     private static int executorsCoreSize = -1;
     private static ExtensionType extensionType = ExtensionType.METHOD;
     private static LoadBalanceType loadBalanceType = null;
@@ -21,6 +22,10 @@ public class Config {
 
     public static boolean isDebugEnabled() {
         return debug;
+    }
+
+    public static String getOutput() {
+        return output;
     }
 
     public static int getExecutorsCoreSize() {

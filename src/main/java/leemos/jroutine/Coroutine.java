@@ -51,9 +51,9 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
     @Override
     public void run() {
         // 检查Coroutine的状态，是否可执行
-        if (status != CoroutineState.NEW) {
-            throw new IllegalCoroutineStateException();
-        }
+        // if (status != CoroutineState.NEW) {
+        //    throw new IllegalCoroutineStateException();
+        // }
         // target必须先经过字节码增强才能运行
         if (!(target instanceof Enhanced)) {
             throw new NonEnhancedClassException();

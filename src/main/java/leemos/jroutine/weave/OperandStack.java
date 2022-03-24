@@ -8,10 +8,7 @@ import java.io.Serializable;
 import leemos.jroutine.exception.EmptyStackException;
 
 /**
- * Store data in operand stack to the heap.
- * 
- * @author lihao
- * @date 2020-05-05
+ * OperandStack是操作数栈的映射，在协程上下文切换时，用来暂存或恢复线程栈帧中的操作数栈
  */
 public class OperandStack implements Serializable {
 

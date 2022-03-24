@@ -1,8 +1,8 @@
 package leemos.jroutine.weave;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import leemos.jroutine.Config;
+
+import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.AccessControlContext;
@@ -109,10 +109,29 @@ public class WeaverClassLoader extends URLClassLoader {
                 }
 
                 final byte[] newData = transformer.transform(classData);
+
+                if (Config.isDebugEnabled()) {
+                    outputClassFile(classname, newData);
+                }
+
                 final ProtectionDomain domain = this.getClass().getProtectionDomain();
                 return defineClass(classname, newData, 0, newData.length, domain);
             }
         }, access);
+    }
+
+    private void outputClassFile(String classname, byte[] classData) {
+        File output = new File(Config.getOutput() + File.separator);
+        if (!output.exists()) {
+            output.mkdirs();
+        }
+
+        File classFile = new File(output.getAbsoluteFile(), classname + ".class");
+        try (FileOutputStream fos = new FileOutputStream(classFile)) {
+            fos.write(classData);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
 }

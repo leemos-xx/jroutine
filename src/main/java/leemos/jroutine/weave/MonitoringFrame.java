@@ -12,7 +12,6 @@ import org.objectweb.asm.tree.analysis.Interpreter;
 
 public final class MonitoringFrame extends Frame<BasicValue> {
 
-    // keeps track of monitored locals
     private List<Integer> monitored;
 
     public MonitoringFrame(Frame<BasicValue> arg0) {
@@ -21,7 +20,7 @@ public final class MonitoringFrame extends Frame<BasicValue> {
 
     public MonitoringFrame(int arg0, int arg1) {
         super(arg0, arg1);
-        monitored = new LinkedList<Integer>();
+        monitored = new LinkedList<>();
     }
 
     @Override
@@ -58,14 +57,13 @@ public final class MonitoringFrame extends Frame<BasicValue> {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public Frame<BasicValue> init(Frame frame) {
         super.init(frame);
         if (frame instanceof MonitoringFrame) {
-            monitored = new LinkedList<Integer>(MonitoringFrame.class.cast(frame).monitored);
+            monitored = new LinkedList<>(MonitoringFrame.class.cast(frame).monitored);
         } else {
-            monitored = new LinkedList<Integer>();
+            monitored = new LinkedList<>();
         }
         return this;
     }
@@ -79,13 +77,13 @@ public final class MonitoringFrame extends Frame<BasicValue> {
     }
 
     public void monitorEnter(int local) {
-        monitored.add(new Integer(local));
+        monitored.add(local);
     }
 
     public void monitorExit(int local) {
         int index = monitored.lastIndexOf(local);
         if (index == -1) {
-            // throw new IllegalStateException("Monitor Exit never entered");
+
         } else {
             monitored.remove(index);
         }
