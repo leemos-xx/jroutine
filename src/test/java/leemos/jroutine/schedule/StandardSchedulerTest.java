@@ -43,12 +43,11 @@ public class StandardSchedulerTest extends TestCase {
 
             Thread.sleep(1600);
             System.out.println("suspend");
-            coroutine.suspend();
+            scheduler.suspend(coroutine);
+
             Thread.sleep(2000);
             System.out.println("resume");
-            // scheduler.submit(coroutine);
-            coroutine.resume();
-            coroutine.run();
+            scheduler.resume(coroutine);
 
             Thread.sleep(10000000);
         } catch (ClassNotFoundException e) {

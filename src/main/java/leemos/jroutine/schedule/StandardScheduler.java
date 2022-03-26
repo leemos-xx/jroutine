@@ -110,4 +110,17 @@ public class StandardScheduler extends AbstractLifecycle implements Scheduler<Co
         executor.execute(coroutine);
     }
 
+    @Override
+    public void suspend(Coroutine coroutine) {
+        coroutine.suspend();
+    }
+
+    @Override
+    public void resume(Coroutine coroutine) {
+        coroutine.resume();
+
+        Executor<Coroutine> executor = loadBalancer.select(executors);
+        executor.execute(coroutine);
+    }
+
 }

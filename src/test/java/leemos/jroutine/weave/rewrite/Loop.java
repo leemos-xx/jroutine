@@ -20,7 +20,7 @@ public class Loop implements Runnable {
 
     private void print(int i) throws InterruptedException {
         Thread.sleep(500);
-        System.out.println(i++);
+        System.out.println(Thread.currentThread().getName() + "--" + i++);
         print(i);
     }
 
