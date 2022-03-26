@@ -11,18 +11,25 @@ public class CoroutineContext extends OperandStack {
 
     private static ThreadLocal<CoroutineContext> threadMap = new ThreadLocal<CoroutineContext>();
 
-    public volatile boolean isRestoring = false;
-    public volatile boolean isCapturing = false;
-    public volatile boolean isDone = false;
+    // 是否需要恢复协程的上下文
+    public volatile boolean restoring = false;
+    // 是否需要暂存协程的上下文
+    public volatile boolean capturing = false;
+    // 处理完毕
+    public volatile boolean done = false;
 
-    public CoroutineContext(Runnable pRunnable) {
-        super(pRunnable);
-    }
-
+    /**
+     * 获取协程上下文
+     * @return
+     */
     public static CoroutineContext get() {
         return threadMap.get();
     }
 
+    /**
+     * 设置协程上下文
+     * @param recorder
+     */
     public static void set(CoroutineContext recorder) {
         if (recorder == null) {
             throw new IllegalArgumentException();
@@ -30,46 +37,41 @@ public class CoroutineContext extends OperandStack {
         threadMap.set(recorder);
     }
 
+    /**
+     * 清理上下文
+     */
     public static void clear() {
         threadMap.remove();
     }
 
-    public void suspend() {
-        isCapturing = true;
-        isRestoring = false;
+    /**
+     * 标识当前上下文为挂起状态
+     */
+    public synchronized void suspend() {
+        capturing = true;
+        restoring = false;
     }
 
-    public void resume() {
-        isCapturing = false;
-        isRestoring = true;
+    /**
+     * 标识当前上下文为恢复状态
+     */
+    public synchronized void resume() {
+        capturing = false;
+        restoring = true;
     }
 
-    public boolean restoring() {
-        if (isRestoring) {
-            isRestoring = false;
-            return true;
-        }
-
-        return false;
+    /**
+     * 标识当前上下文为已经恢复完成
+     */
+    public synchronized void restored() {
+        restoring = false;
     }
 
-    public boolean capturing() {
-        if (isCapturing) {
-            isCapturing = false;
-            return true;
-        }
-        return false;
-    }
-
+    /**
+     * 标识当前协程已完成
+     */
     public void done() {
-        isDone = true;
-    }
-
-    public static void main(String[] args) {
-        CoroutineContext context = CoroutineContext.get();
-        if (context.restoring()) {
-            System.out.println(1);
-        }
+        done = true;
     }
 
 }
