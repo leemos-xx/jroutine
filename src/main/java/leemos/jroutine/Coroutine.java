@@ -45,7 +45,7 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
         this.target = target;
         this.priority = priority;
 
-        this.context = new CoroutineContext(target);
+        this.context = new CoroutineContext();
     }
 
     @Override

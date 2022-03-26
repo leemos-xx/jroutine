@@ -41,9 +41,9 @@ public class JroutineMethodAnalyzer extends MethodNode {
     private final List<MethodInsnNode> probablyNewVars = new ArrayList<>();
 
     protected MethodVisitor mv;
-    protected List<Label> buryingLabels = new ArrayList<>();
-    protected List<MethodInsnNode> buryingNodes = new ArrayList<>();
-    protected int operandStackRecorderVar;
+    protected List<Label> preBuriedLabels = new ArrayList<>();
+    protected List<MethodInsnNode> preBuriedNodes = new ArrayList<>();
+    protected int contextVar;
     protected Analyzer<BasicValue> basicAnalyzer;
     protected List<AbstractInsnNode> endNodes = new ArrayList<>();
 
@@ -73,8 +73,8 @@ public class JroutineMethodAnalyzer extends MethodNode {
         if (isSuspendableInsn(opcode, name)) {
             Label label = new Label();
             super.visitLabel(label);
-            buryingLabels.add(label);
-            buryingNodes.add(mn);
+            preBuriedLabels.add(label);
+            preBuriedNodes.add(mn);
         }
 
         instructions.add(mn);
@@ -91,12 +91,12 @@ public class JroutineMethodAnalyzer extends MethodNode {
 
     @Override
     public void visitEnd() {
-        if (instructions.size() == 0 || buryingLabels.size() == 0) {
+        if (instructions.size() == 0 || preBuriedLabels.size() == 0) {
             accept(mv);
             return;
         }
 
-        operandStackRecorderVar = maxLocals;
+        contextVar = maxLocals;
 
         try {
             HashMap<AbstractInsnNode, MethodInsnNode> promotableVars;
@@ -188,7 +188,7 @@ public class JroutineMethodAnalyzer extends MethodNode {
             MethodInsnNode mnode = entry.getValue();
             AbstractInsnNode mn = mnode;
 
-            int varOffset = operandStackRecorderVar + 1;
+            int varOffset = contextVar + 1;
             Type[] args = Type.getArgumentTypes(mnode.desc);
 
             if (args.length == 0) {
@@ -257,7 +257,6 @@ public class JroutineMethodAnalyzer extends MethodNode {
                     updateMaxStack = Math.max(updateMaxStack, 1);
 
                     doNew.add(new InsnNode(ACONST_NULL));
-
                     doNew.add(new VarInsnNode(type.getOpcode(ISTORE), varOffset));
                 }
             }

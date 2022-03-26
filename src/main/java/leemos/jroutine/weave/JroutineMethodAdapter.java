@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -15,19 +16,19 @@ import leemos.jroutine.CoroutineContext;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
- * JroutineMethodAdapter
+ * 织入协程暂停和恢复的核心逻辑
  */
 public class JroutineMethodAdapter extends MethodVisitor {
 
-    private static final String RECORDER = Type.getInternalName(CoroutineContext.class);
-    private static final String POP_METHOD = "pop";
-    private static final String PUSH_METHOD = "push";
+    private static final String CONTEXT = Type.getInternalName(CoroutineContext.class);
+    private static final String POP = "pop";
+    private static final String PUSH = "push";
 
     private JroutineMethodAnalyzer analyzer;
-    protected List<Label> buryingLabels;
-    protected List<MethodInsnNode> buryingNodes;
+    protected List<Label> preBuriedLabels;
+    protected List<MethodInsnNode> preBuriedNodes;
     protected List<AbstractInsnNode> endNodes;
-    protected int operandStackRecorderVar;
+    protected int contextVar;
 
     private Label startLabel = new Label();
     private int currentIndex = 0;
@@ -36,17 +37,17 @@ public class JroutineMethodAdapter extends MethodVisitor {
     public JroutineMethodAdapter(JroutineMethodAnalyzer analyzer) {
         super(ASM8, analyzer.mv);
         this.analyzer = analyzer;
-        this.buryingLabels = analyzer.buryingLabels;
-        this.buryingNodes = analyzer.buryingNodes;
+        this.preBuriedLabels = analyzer.preBuriedLabels;
+        this.preBuriedNodes = analyzer.preBuriedNodes;
         this.endNodes = analyzer.endNodes;
-        this.operandStackRecorderVar = analyzer.operandStackRecorderVar;
+        this.contextVar = analyzer.contextVar;
     }
 
     @Override
     public void visitCode() {
         mv.visitCode();
 
-        int fsize = buryingLabels.size();
+        int fsize = preBuriedLabels.size();
         Label[] restoreLabels = new Label[fsize];
         for (int i = 0; i < fsize; i++) {
             restoreLabels[i] = new Label();
@@ -55,38 +56,27 @@ public class JroutineMethodAdapter extends MethodVisitor {
         Label l0 = new Label();
 
         // CoroutineContext context = CoroutineContext.get();
-        mv.visitMethodInsn(INVOKESTATIC, RECORDER, "get", "()L" + RECORDER + ";", false);
+        mv.visitMethodInsn(INVOKESTATIC, CONTEXT, "get", "()L" + CONTEXT + ";", false);
         mv.visitInsn(DUP);
-        mv.visitVarInsn(ASTORE, operandStackRecorderVar);
+        mv.visitVarInsn(ASTORE, contextVar);
         mv.visitLabel(startLabel);
 
         // if (context != null && !context.isRestoring)
         mv.visitJumpInsn(IFNULL, l0);
-        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-        mv.visitFieldInsn(GETFIELD, RECORDER, "isRestoring", "Z");
-        // mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "restoring", "()Z", false);
+        mv.visitVarInsn(ALOAD, contextVar);
+        mv.visitFieldInsn(GETFIELD, CONTEXT, "restoring", "Z");
         mv.visitJumpInsn(IFEQ, l0);
 
-        /*
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
-        */
-/*
-        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-        mv.visitInsn(ICONST_0);
-        mv.visitFieldInsn(PUTFIELD, RECORDER, "isRestoring", "Z");
-*/
         // context.popInt()
-        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-        mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Int", "()I", false);
+        mv.visitVarInsn(ALOAD, contextVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, POP + "Anchor", "()I", false);
         mv.visitTableSwitchInsn(0, fsize - 1, l0, restoreLabels);
 
         for (int i = 0; i < fsize; i++) {
-            Label frameLabel = buryingLabels.get(i);
+            Label frameLabel = preBuriedLabels.get(i);
             mv.visitLabel(restoreLabels[i]);
 
-            MethodInsnNode mn = buryingNodes.get(i);
+            MethodInsnNode mn = preBuriedNodes.get(i);
             int index = analyzer.instructions.indexOf(mn);
             Frame<BasicValue> frame = analyzer.basicAnalyzer.getFrames()[index];
 
@@ -97,14 +87,14 @@ public class JroutineMethodAdapter extends MethodVisitor {
                     mv.visitInsn(ACONST_NULL);
                     mv.visitVarInsn(ASTORE, j);
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
-
+                    // TODO
                 } else if (value == BasicValue.RETURNADDRESS_VALUE) {
-
+                    // TODO
                 } else {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                    mv.visitVarInsn(ALOAD, contextVar);
                     Type type = value.getType();
                     if (value.isReference()) {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Object", "()Ljava/lang/Object;",
+                        mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, POP + "Object", "()Ljava/lang/Object;",
                                 false);
                         if (type.getDescriptor().charAt(0) == '[') {
                             mv.visitTypeInsn(CHECKCAST, type.getDescriptor());
@@ -113,7 +103,7 @@ public class JroutineMethodAdapter extends MethodVisitor {
                         }
                         mv.visitVarInsn(ASTORE, j);
                     } else {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, getPopMethod(type), "()" + type.getDescriptor(),
+                        mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, getPopMethod(type), "()" + type.getDescriptor(),
                                 false);
                         mv.visitVarInsn(type.getOpcode(ISTORE), j);
                     }
@@ -137,34 +127,27 @@ public class JroutineMethodAdapter extends MethodVisitor {
                 if (isNull(value)) {
                     mv.visitInsn(ACONST_NULL);
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
-
+                    // TODO
                 } else if (value == BasicValue.RETURNADDRESS_VALUE) {
-
+                    // TODO
                 } else if (value.isReference()) {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Object", "()Ljava/lang/Object;", false);
+                    mv.visitVarInsn(ALOAD, contextVar);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, POP + "Object", "()Ljava/lang/Object;", false);
                     mv.visitTypeInsn(CHECKCAST, value.getType().getInternalName());
                 } else {
                     Type type = value.getType();
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, getPopMethod(type), "()" + type.getDescriptor(), false);
+                    mv.visitVarInsn(ALOAD, contextVar);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, getPopMethod(type), "()" + type.getDescriptor(), false);
                 }
             }
-
-            /*
-            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-            mv.visitIntInsn(BIPUSH, i);
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(I)V", false);
-            */
-
 
             if (mn.getOpcode() != INVOKESTATIC) {
                 BasicValue value = frame.getStack(stackSize - argSize - 1);
                 if (isNull(value)) {
                     mv.visitInsn(ACONST_NULL);
                 } else {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Reference", "()Ljava/lang/Object;",
+                    mv.visitVarInsn(ALOAD, contextVar);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, POP + "Reference", "()Ljava/lang/Object;",
                             false);
                     mv.visitTypeInsn(CHECKCAST, value.getType().getInternalName());
                 }
@@ -179,8 +162,8 @@ public class JroutineMethodAdapter extends MethodVisitor {
 
         for (int i = 0; i < endNodes.size(); i++) {
             InsnList insns = new InsnList();
-            insns.add(new MethodInsnNode(INVOKESTATIC, RECORDER, "get", "()L" + RECORDER + ";", false));
-            insns.add(new MethodInsnNode(INVOKEVIRTUAL, RECORDER, "done", "()V", false));
+            insns.add(new MethodInsnNode(INVOKESTATIC, CONTEXT, "get", "()L" + CONTEXT + ";", false));
+            insns.add(new MethodInsnNode(INVOKEVIRTUAL, CONTEXT, "done", "()V", false));
 
             analyzer.instructions.insertBefore(endNodes.get(i), insns);
         }
@@ -190,8 +173,8 @@ public class JroutineMethodAdapter extends MethodVisitor {
 
     @Override
     public void visitLabel(Label label) {
-        if (currentIndex < buryingLabels.size() && label == buryingLabels.get(currentIndex)) {
-            int i = analyzer.instructions.indexOf(buryingNodes.get(currentIndex));
+        if (currentIndex < preBuriedLabels.size() && label == preBuriedLabels.get(currentIndex)) {
+            int i = analyzer.instructions.indexOf(preBuriedNodes.get(currentIndex));
             currentFrame = analyzer.basicAnalyzer.getFrames()[i];
         }
         mv.visitLabel(label);
@@ -204,17 +187,16 @@ public class JroutineMethodAdapter extends MethodVisitor {
         if (currentFrame != null) {
             Label fl = new Label();
 
-            mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+            mv.visitVarInsn(ALOAD, contextVar);
             mv.visitJumpInsn(IFNULL, fl);
-            mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-            mv.visitFieldInsn(GETFIELD, RECORDER, "isCapturing", "Z");
-            // mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "capturing", "()Z", false);
+            mv.visitVarInsn(ALOAD, contextVar);
+            mv.visitFieldInsn(GETFIELD, CONTEXT, "capturing", "Z");
             mv.visitJumpInsn(IFEQ, fl);
 
             Type returnType = Type.getReturnType(descriptor);
             boolean hasReturn = returnType != Type.VOID_TYPE;
             if (hasReturn) {
-                mv.visitInsn(returnType.getSize() == 1 ? POP : POP2);
+                mv.visitInsn(returnType.getSize() == 1 ? Opcodes.POP : POP2);
             }
 
             Type[] params = Type.getArgumentTypes(descriptor);
@@ -224,36 +206,36 @@ public class JroutineMethodAdapter extends MethodVisitor {
             for (int i = ssize - 1; i >= 0; i--) {
                 BasicValue value = (BasicValue) currentFrame.getStack(i);
                 if (isNull(value)) {
-                    mv.visitInsn(POP);
+                    mv.visitInsn(Opcodes.POP);
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
 
                 } else if (value.isReference()) {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                    mv.visitVarInsn(ALOAD, contextVar);
                     mv.visitInsn(SWAP);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, PUSH_METHOD + "Object", "(Ljava/lang/Object;)V", false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, PUSH + "Object", "(Ljava/lang/Object;)V", false);
                 } else {
                     Type type = value.getType();
                     if (type.getSize() > 1) {
                         mv.visitInsn(ACONST_NULL);
-                        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                        mv.visitVarInsn(ALOAD, contextVar);
                         mv.visitInsn(DUP2_X2);
                         mv.visitInsn(POP2);
-                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, getPushMethod(type),
+                        mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, getPushMethod(type),
                                 "(" + type.getDescriptor() + ")V", false);
-                        mv.visitInsn(POP);
+                        mv.visitInsn(Opcodes.POP);
                     } else {
-                        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                        mv.visitVarInsn(ALOAD, contextVar);
                         mv.visitInsn(SWAP);
-                        mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, getPushMethod(type),
+                        mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, getPushMethod(type),
                                 "(" + type.getDescriptor() + ")V", false);
                     }
                 }
             }
 
             if (!((analyzer.access & ACC_STATIC) > 0)) {
-                mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                mv.visitVarInsn(ALOAD, contextVar);
                 mv.visitVarInsn(ALOAD, 0);
-                mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, PUSH_METHOD + "Reference", "(Ljava/lang/Object;)V", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, PUSH + "Reference", "(Ljava/lang/Object;)V", false);
             }
 
             int fsize = currentFrame.getLocals();
@@ -264,32 +246,25 @@ public class JroutineMethodAdapter extends MethodVisitor {
                 } else if (value == BasicValue.UNINITIALIZED_VALUE) {
 
                 } else if (value.isReference()) {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                    mv.visitVarInsn(ALOAD, contextVar);
                     mv.visitVarInsn(ALOAD, j);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, PUSH_METHOD + "Object", "(Ljava/lang/Object;)V", false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, PUSH + "Object", "(Ljava/lang/Object;)V", false);
                 } else {
-                    mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+                    mv.visitVarInsn(ALOAD, contextVar);
                     Type type = value.getType();
                     mv.visitVarInsn(type.getOpcode(ILOAD), j);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, getPushMethod(type), "(" + type.getDescriptor() + ")V",
+                    mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, getPushMethod(type), "(" + type.getDescriptor() + ")V",
                             false);
                 }
             }
 
-            mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+            mv.visitVarInsn(ALOAD, contextVar);
             if (currentIndex >= 128) {
                 mv.visitIntInsn(SIPUSH, currentIndex);
             } else {
                 mv.visitIntInsn(BIPUSH, currentIndex);
             }
-            mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "pushInt", "(I)V", false);
-
-            /*
-            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-            mv.visitVarInsn(ALOAD, operandStackRecorderVar);
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
-
-             */
+            mv.visitMethodInsn(INVOKEVIRTUAL, CONTEXT, PUSH + "Anchor", "(I)V", false);
 
             if (currentFrame instanceof MonitoringFrame) {
                 int[] monitoredLocals = ((MonitoringFrame) currentFrame).getMonitored();
@@ -315,17 +290,16 @@ public class JroutineMethodAdapter extends MethodVisitor {
         Label endLabel = new Label();
         mv.visitLabel(endLabel);
 
-        mv.visitLocalVariable("context", "L" + RECORDER + ";", null, startLabel, endLabel, operandStackRecorderVar);
-
+        mv.visitLocalVariable("context", "L" + CONTEXT + ";", null, startLabel, endLabel, contextVar);
         mv.visitMaxs(0, 0);
     }
 
     private String getPopMethod(Type type) {
-        return POP_METHOD + suffix(type);
+        return POP + suffix(type);
     }
 
     private String getPushMethod(Type type) {
-        return PUSH_METHOD + suffix(type);
+        return PUSH + suffix(type);
     }
 
     private boolean isNull(BasicValue value) {
@@ -341,29 +315,29 @@ public class JroutineMethodAdapter extends MethodVisitor {
 
     private void pushDefault(Type type) {
         switch (type.getSort()) {
-        case Type.VOID:
-            break;
-        case Type.DOUBLE:
-            mv.visitInsn(DCONST_0);
-            break;
-        case Type.LONG:
-            mv.visitInsn(LCONST_0);
-            break;
-        case Type.FLOAT:
-            mv.visitInsn(FCONST_0);
-            break;
-        case Type.OBJECT:
-        case Type.ARRAY:
-            mv.visitInsn(ACONST_NULL);
-            break;
-        default:
-            mv.visitInsn(ICONST_0);
-            break;
+            case Type.VOID:
+                break;
+            case Type.DOUBLE:
+                mv.visitInsn(DCONST_0);
+                break;
+            case Type.LONG:
+                mv.visitInsn(LCONST_0);
+                break;
+            case Type.FLOAT:
+                mv.visitInsn(FCONST_0);
+                break;
+            case Type.OBJECT:
+            case Type.ARRAY:
+                mv.visitInsn(ACONST_NULL);
+                break;
+            default:
+                mv.visitInsn(ICONST_0);
+                break;
         }
     }
 
     private static String suffix(Type type) {
-        String[] suffixes = { "Object", // 0 void
+        String[] suffixes = {"Object", // 0 void
                 "Int", // 1 boolean
                 "Int", // 2 char
                 "Int", // 3 byte
