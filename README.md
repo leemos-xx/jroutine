@@ -1,6 +1,6 @@
 # Jroutine
 
-jroutine在java语言的体系下,实现了一套非常简化的GPM模型，可以帮助大家理解协程的基础概念。
+jroutine在java语言的体系下，实现了一套非常简化的GPM模型，可以帮助大家理解协程的基础概念。
 
 ## Table of Contents
 - [快速入门](#快速入门)
