@@ -4,13 +4,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Arrays;
 
 import leemos.jroutine.exception.EmptyStackException;
 
 /**
  * OperandStack是操作数栈的映射，在协程上下文切换时，用来暂存或恢复线程栈帧中的操作数栈
  */
-public class OperandStack implements Serializable {
+public abstract class OperandStack implements Serializable {
 
     private static final long serialVersionUID = -8129811689487823230L;
 
@@ -65,13 +66,18 @@ public class OperandStack implements Serializable {
 
     public int popInt() {
         if (itop == 0) {
-            throw new EmptyStackException("pop int");
+            //throw new EmptyStackException("pop int");
+            restoring();
+            return -1;
         }
 
         return istack[--itop];
     }
 
+    public abstract boolean restoring();
+
     public void pushInt(int i) {
+
         if (itop == istack.length) {
             int[] hlp = new int[istack.length * 2];
             System.arraycopy(istack, 0, hlp, 0, istack.length);
@@ -148,8 +154,10 @@ public class OperandStack implements Serializable {
         if (otop == 0) {
             throw new EmptyStackException("pop object");
         }
+
         Object o = ostack[--otop];
         ostack[otop] = null;
+
         return o;
     }
 
@@ -223,6 +231,7 @@ public class OperandStack implements Serializable {
             sb.append(rstack[i].getClass().getName());
             sb.append("@").append(rstack[i].hashCode()).append('\n');
         }
+        sb.append(Arrays.toString(istack) + "\n");
 
         return sb.toString();
     }

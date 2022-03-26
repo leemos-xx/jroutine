@@ -6,13 +6,22 @@ import java.io.PrintStream;
 
 public class Loop implements Runnable {
 
-    private PrintStream out = System.out;
+    private static PrintStream out = System.out;
     private int i = 0;
 
     @Override
     public void run() {
-        String isRestoring = "context: " + CoroutineContext.get().isRestoring;
-        out.println(isRestoring);
+        try {
+            print(0);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void print(int i) throws InterruptedException {
+        Thread.sleep(500);
+        System.out.println(i++);
+        print(i);
     }
 
 }

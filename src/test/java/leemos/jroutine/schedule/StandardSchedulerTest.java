@@ -29,20 +29,28 @@ public class StandardSchedulerTest extends TestCase {
     public void testSubmit() throws MalformedURLException, InterruptedException {
         @SuppressWarnings("resource")
         WeaverClassLoader classLoader = new WeaverClassLoader(new URL[]{}, new AsmClassTransformer());
+        /*(WeaverClassLoader classLoader = new WeaverClassLoader(new URL[]{}, new ClassTransformer() {
+
+            @Override
+            public byte[] transform(byte[] classFile) {
+                return classFile;
+            }
+        });*/
         try {
             Class<?> clazz = classLoader.loadClass("leemos.jroutine.weave.rewrite.Loop");
             Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
             scheduler.submit(coroutine);
 
-            Thread.sleep(10000);
+            Thread.sleep(1600);
             System.out.println("suspend");
             coroutine.suspend();
-            Thread.sleep(4000);
+            Thread.sleep(2000);
             System.out.println("resume");
-            scheduler.submit(coroutine);
-            // coroutine.resume();
+            // scheduler.submit(coroutine);
+            coroutine.resume();
+            coroutine.run();
 
-            Thread.sleep(1000);
+            Thread.sleep(10000000);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {

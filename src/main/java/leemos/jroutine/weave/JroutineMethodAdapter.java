@@ -64,8 +64,19 @@ public class JroutineMethodAdapter extends MethodVisitor {
         mv.visitJumpInsn(IFNULL, l0);
         mv.visitVarInsn(ALOAD, operandStackRecorderVar);
         mv.visitFieldInsn(GETFIELD, RECORDER, "isRestoring", "Z");
+        // mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "restoring", "()Z", false);
         mv.visitJumpInsn(IFEQ, l0);
 
+        /*
+        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
+        */
+/*
+        mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+        mv.visitInsn(ICONST_0);
+        mv.visitFieldInsn(PUTFIELD, RECORDER, "isRestoring", "Z");
+*/
         // context.popInt()
         mv.visitVarInsn(ALOAD, operandStackRecorderVar);
         mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, POP_METHOD + "Int", "()I", false);
@@ -140,6 +151,13 @@ public class JroutineMethodAdapter extends MethodVisitor {
                 }
             }
 
+            /*
+            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            mv.visitIntInsn(BIPUSH, i);
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(I)V", false);
+            */
+
+
             if (mn.getOpcode() != INVOKESTATIC) {
                 BasicValue value = frame.getStack(stackSize - argSize - 1);
                 if (isNull(value)) {
@@ -190,6 +208,7 @@ public class JroutineMethodAdapter extends MethodVisitor {
             mv.visitJumpInsn(IFNULL, fl);
             mv.visitVarInsn(ALOAD, operandStackRecorderVar);
             mv.visitFieldInsn(GETFIELD, RECORDER, "isCapturing", "Z");
+            // mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "capturing", "()Z", false);
             mv.visitJumpInsn(IFEQ, fl);
 
             Type returnType = Type.getReturnType(descriptor);
@@ -264,6 +283,13 @@ public class JroutineMethodAdapter extends MethodVisitor {
                 mv.visitIntInsn(BIPUSH, currentIndex);
             }
             mv.visitMethodInsn(INVOKEVIRTUAL, RECORDER, "pushInt", "(I)V", false);
+
+            /*
+            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            mv.visitVarInsn(ALOAD, operandStackRecorderVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
+
+             */
 
             if (currentFrame instanceof MonitoringFrame) {
                 int[] monitoredLocals = ((MonitoringFrame) currentFrame).getMonitored();

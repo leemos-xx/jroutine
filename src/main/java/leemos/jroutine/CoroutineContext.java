@@ -35,12 +35,41 @@ public class CoroutineContext extends OperandStack {
     }
 
     public void suspend() {
-        isCapturing = !isRestoring;
+        isCapturing = true;
         isRestoring = false;
+    }
+
+    public void resume() {
+        isCapturing = false;
+        isRestoring = true;
+    }
+
+    public boolean restoring() {
+        if (isRestoring) {
+            isRestoring = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean capturing() {
+        if (isCapturing) {
+            isCapturing = false;
+            return true;
+        }
+        return false;
     }
 
     public void done() {
         isDone = true;
+    }
+
+    public static void main(String[] args) {
+        CoroutineContext context = CoroutineContext.get();
+        if (context.restoring()) {
+            System.out.println(1);
+        }
     }
 
 }
