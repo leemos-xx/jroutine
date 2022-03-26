@@ -6,9 +6,6 @@ import java.io.PrintStream;
 
 public class Loop implements Runnable {
 
-    private static PrintStream out = System.out;
-    private int i = 0;
-
     @Override
     public void run() {
         try {
@@ -20,7 +17,7 @@ public class Loop implements Runnable {
 
     private void print(int i) throws InterruptedException {
         Thread.sleep(500);
-        System.out.println(Thread.currentThread().getName() + "--" + i++);
+        System.out.println(Thread.currentThread().getName() + ": " + i++);
         print(i);
     }
 

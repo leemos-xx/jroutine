@@ -12,51 +12,39 @@ import junit.framework.TestCase;
 
 /**
  * StandardSchedulerTest
- * 
+ *
  * @author lihao
  * @date 2020-05-14
  */
 public class StandardSchedulerTest extends TestCase {
 
-    private StandardScheduler scheduler;
-
-    @Override
-    protected void setUp() throws Exception {
-        scheduler = new StandardScheduler();
+    public void testSubmit() throws Exception {
+        // 启动调度器
+        StandardScheduler scheduler = new StandardScheduler();
         scheduler.start();
-    }
 
-    public void testSubmit() throws MalformedURLException, InterruptedException {
-        @SuppressWarnings("resource")
+        // 使用ASM类加载器加载业务资源
         WeaverClassLoader classLoader = new WeaverClassLoader(new URL[]{}, new AsmClassTransformer());
-        /*(WeaverClassLoader classLoader = new WeaverClassLoader(new URL[]{}, new ClassTransformer() {
+        Class<?> clazz = classLoader.loadClass("leemos.jroutine.weave.rewrite.Loop");
 
-            @Override
-            public byte[] transform(byte[] classFile) {
-                return classFile;
-            }
-        });*/
-        try {
-            Class<?> clazz = classLoader.loadClass("leemos.jroutine.weave.rewrite.Loop");
-            Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
-            scheduler.submit(coroutine);
+        // 构造协程
+        Coroutine coroutine = new Coroutine((Runnable) clazz.newInstance());
 
-            Thread.sleep(1600);
-            System.out.println("suspend");
-            scheduler.suspend(coroutine);
+        // 开始调度协程
+        scheduler.submit(coroutine);
 
-            Thread.sleep(2000);
-            System.out.println("resume");
-            scheduler.resume(coroutine);
+        // 协程挂起
+        Thread.sleep(2000);
+        System.out.println("coroutine suspend for 2s...");
+        scheduler.suspend(coroutine);
 
-            Thread.sleep(10000000);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
+        // 协程恢复
+        Thread.sleep(2000);
+        System.out.println("coroutine resume...");
+        scheduler.resume(coroutine);
+
+
+        Thread.sleep(Integer.MAX_VALUE);
 
     }
 
