@@ -50,14 +50,14 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
 
     @Override
     public void run() {
-        // 检查Coroutine的状态，是否可执行
-        // if (status != CoroutineState.NEW) {
-        //    throw new IllegalCoroutineStateException();
-        // }
+        //检查Coroutine的状态，是否可执行
+        if (!(status == CoroutineState.NEW || status == CoroutineState.RUNNABLE)) {
+            throw new IllegalCoroutineStateException();
+        }
         // target必须先经过字节码增强才能运行
-        // if (!(target instanceof Enhanced)) {
-        //     throw new NonEnhancedClassException();
-        // }
+        if (!(target instanceof Enhanced)) {
+            throw new NonEnhancedClassException();
+        }
 
         setStatus(CoroutineState.RUNNABLE);
         try {
@@ -90,6 +90,7 @@ public class Coroutine extends Observable<CoroutineState> implements Runnable, C
         if (status != CoroutineState.SUSPENDING) {
             throw new IllegalCoroutineStateException();
         }
+
         setStatus(CoroutineState.RUNNABLE);
 
         // FIXME 此处需要根据上次suspend的上下文继续执行
