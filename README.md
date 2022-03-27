@@ -102,7 +102,91 @@ public class StandardSchedulerTest extends TestCase {
 OperandStack
 
 ### 协程控制
-JroutineClassAdapter
+协程控制主要依赖asm对字节码进行增强来实现，我们可以对比下字节码修改前后的代码差异来理解协程控制的逻辑。为了方便，我们再对已经很简单的`Loop`类做下减法。
+```java
+public class Loop implements Runnable {
+
+    // other methods
+    // func() {}
+
+    private void print(int i) throws InterruptedException {
+        Thread.sleep(500);
+        System.out.println(i);
+        print(++i);
+    }
+
+}
+```
+在经过字节码增强后，其代码逻辑大致如下：
+```java
+public class Loop {
+    
+    private void print(int i) throws InterruptedException {
+        CoroutineContext context;
+        block9:
+        {
+            block8:
+            {
+                // context是协程流转的上下文
+                context = CoroutineContext.get();
+                if (!(context == null || !context.restoring)) {
+                    // anchor是锚点值，当协程恢复时，会根据锚点值来判断协程挂起时程序运行到哪个步骤
+                    switch (context.popAnchor()) {
+                        case 0: {
+                            // 从context中恢复变量
+                            i = context.popInt();
+                            this = (Loop) context.popObject();
+                            break;
+                        }
+                        case 1: {
+                            i = context.popInt();
+                            this = (Loop) context.popObject();
+                            break block8;
+                        }
+                        case 2: {
+                            i = context.popInt();
+                            this = (Loop) context.popObject();
+                            break block9;
+                        }
+                        default: {
+
+                        }
+                    }
+                }
+
+                Thread.sleep(500);
+                // 当协程挂起时，会进入capture的逻辑，此处会将当前方法中的参数值暂存到context中，之后恢复时使用，
+                // 此外，此处也会记录锚点值
+                if (context != null && context.capturing) {
+                    context.pushReference((Object) this);
+                    context.pushObject((Object) this);
+                    context.pushInt((int) i);
+                    context.pushAnchor(0);
+                    return;
+                }
+
+            }
+            System.out.println((int) i);
+            if (context != null && context.capturing) {
+                context.pushReference((Object) this);
+                context.pushObject((Object) this);
+                context.pushInt((int) i);
+                context.pushAnchor(1);
+                return;
+            }
+        }
+        print((int) i++);
+        if (context != null && context.capturing) {
+            context.pushReference((Object) this);
+            context.pushObject((Object) this);
+            context.pushInt((int) i);
+            context.pushAnchor(2);
+            return;
+        }
+        CoroutineContext.get().done();
+    }
+}
+```
 
 ### 调度策略
 StandardScheduler
